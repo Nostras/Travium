@@ -8,9 +8,6 @@
 
 A fast, stable Travian T4.5 clone with a one-click installer in a single command.
 
-Join our discord:
-**Discord:** [https://discord.gg/TCjyvcctDg](https://discord.gg/TCjyvcctDg)
-
 ## Features
 
 * 1-click automated install and configuration
