@@ -355,6 +355,35 @@ systemctl enable travium.target
 # Run once immediately to catch existing folders
 systemctl start travium-sync.service
 
+
+#####################################
+# Regenerate faulty certs
+#####################################
+# Define your domain
+SSL_DIR="/etc/nginx/ssl-certificates"
+
+# Generate a new private key and a wildcard CSR
+openssl req -new -newkey rsa:2048 -nodes -keyout "$SSL_DIR/$DOMAIN.key" -out "$SSL_DIR/$DOMAIN.csr" \
+  -subj "/C=US/ST=State/L=Locality/O=Organization/OU=Unit/CN=*.$DOMAIN"
+
+# Create a config file for the Subject Alternative Names (SAN)
+cat > /tmp/openssl.cnf <<EOF
+[v3_req]
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = $DOMAIN
+DNS.2 = *.$DOMAIN
+EOF
+
+# Sign the certificate using the key and the SAN config
+openssl x509 -req -days 365 -in "$SSL_DIR/$DOMAIN.csr" -signkey "$SSL_DIR/$DOMAIN.key" \
+  -out "$SSL_DIR/$DOMAIN.crt" -extensions v3_req -extfile /tmp/openssl.cnf
+
+# Reload Nginx to apply the changes
+systemctl reload nginx
+
 #####################################
 # summary
 #####################################
@@ -398,3 +427,6 @@ chown "${SITE_USER}:${SITE_USER}" "$SETUP_CONF"
 chmod 600 "$SETUP_CONF"
 
 ok "Saved secrets to $SETUP_CONF (600). Guard it."
+
+ok "This is your cert, save this as a .crt file and load it in your OS"
+cat "/etc/nginx/ssl-certificates/$DOMAIN.crt"
