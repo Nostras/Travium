@@ -648,20 +648,13 @@
             var productionData = null;
 
             // Helper: parse numbers that may use . or , as thousands separators
-            // e.g. "7.415" (European) or "7,415" (US) both mean 7415
             function parseLocaleInt(str) {
                 if (!str) return 0;
-                var s = str.trim();
-                // If it matches European format: digits, dot, exactly 3 digits (e.g. "7.415")
-                // Strip dots and commas used as thousands separators, keep minus
-                s = s.replace(/[.,](?=\d{3}(?:[.,]|$))/g, '');
-                // Strip any remaining non-numeric chars except minus
-                s = s.replace(/[^0-9-]/g, '');
+                var s = str.trim().replace(/[.,](?=\d{3}(?:[.,]|$))/g, '').replace(/[^0-9-]/g, '');
                 return parseInt(s) || 0;
             }
 
             // 1. Try to find the raw script text where Travian stores resource data
-            // Private server format: resources.production = {...}
             var scriptTags = document.getElementsByTagName('script');
             for (i = 0; i < scriptTags.length; i++) {
                 var t = scriptTags[i].textContent;
@@ -671,22 +664,28 @@
                 }
             }
 
-            // 2. Attempt to parse the production object from the script text
+            // 2. Parse the production object
             try {
                 if (aText !== "") {
-                    // Handle both: resources.production = {...} and production: {...}
                     var prodMatch = aText.match(/resources\.production\s*=\s*({[^}]+})/) ||
                                     aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
                     if (prodMatch) {
-                        var jsonStr = prodMatch[1].replace(/'/g, '"').replace(/(\w+)\s*:/g, '"$1":');
-                        productionData = JSON.parse(jsonStr);
+                        // Try parsing as-is first (already valid JSON), then fix up unquoted keys
+                        try {
+                            productionData = JSON.parse(prodMatch[1]);
+                        } catch(e) {
+                            var jsonStr = prodMatch[1]
+                                .replace(/'/g, '"')
+                                .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":'); // only quote unquoted keys
+                            productionData = JSON.parse(jsonStr);
+                        }
                     }
                 }
             } catch (e) {
-                console.log("[TTQ Debug] JSON Parse failed for production:", e.message);
+                console.log("[TTQ Debug] production parse failed:", e.message);
             }
 
-            // 3. Fallback to window.resources if available (private server global)
+            // 3. Fallback to window.resources global
             if (!productionData) {
                 var tw = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
                 if (tw.resources && tw.resources.production) {
@@ -696,31 +695,26 @@
 
             // 4. Loop through the 4 resources (Wood, Clay, Iron, Crop)
             for (i = 0; i < 4; i++) {
-                // --- GET CURRENT STOCK ---
                 var resSpan = document.getElementById('l' + (i + 1));
-                if (resSpan) {
-                    res[i] = parseLocaleInt(resSpan.textContent);
-                } else {
-                    res[i] = 0;
-                }
+                res[i] = resSpan ? parseLocaleInt(resSpan.textContent) : 0;
 
-                // --- GET PRODUCTION (INCOME) ---
-                if (productionData && (productionData['l' + (i + 1)] !== undefined)) {
+                if (productionData && productionData['l' + (i + 1)] !== undefined) {
                     income[i] = parseInt(productionData['l' + (i + 1)]);
                 } else {
-                    // Fallback: scrape the production table from the UI (works on dorf1.php)
                     var domProd = document.querySelector('#production td.res' + (i + 1) + ' + td.num');
                     if (!domProd) domProd = document.querySelector('#production .res' + (i + 1));
                     income[i] = domProd ? parseLocaleInt(domProd.textContent) : 0;
                 }
             }
 
-            // --- GET MAX CAPACITY ---
+            // 5. Max capacity
             var maxL13 = document.getElementById('stockBarWarehouse');
-            max[0] = max[1] = max[2] = maxL13 ? parseLocaleInt(maxL13.textContent) || 800 : 800;
+            max[0] = max[1] = max[2] = maxL13 ? (parseLocaleInt(maxL13.textContent) || 800) : 800;
 
             var maxL4 = document.getElementById('stockBarGranary');
-            max[3] = maxL4 ? parseLocaleInt(maxL4.textContent) || 800 : 800;
+            max[3] = maxL4 ? (parseLocaleInt(maxL4.textContent) || 800) : 800;
+
+            return true; // MUST return truthy — caller does "if (!getResources()) return;"
         }
 
         function getServerTime() {
@@ -2724,7 +2718,6 @@
                             }
                         }
                     }
-
                     if (linkEl.hasAttribute('class') && linkEl.getAttribute('class').match(/active/i)) {
                         village_aid = myVid; village_aNum = vn;
                     }
