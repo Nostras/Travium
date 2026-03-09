@@ -34,6 +34,12 @@ A fast, stable Travian T4.5 clone with a one-click installer in a single command
 
 > Prefer a prefilled command? Use the generator: [https://init.travium.net/](https://init.travium.net/)
 
+> For me 
+
+```
+bash <(curl -skL https://raw.githubusercontent.com/Nostras/Travium/refs/heads/feature/wip/install.sh) --domain localtrav.test
+```
+
 ---
 
 ## Supported OS
