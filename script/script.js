@@ -701,6 +701,25 @@
             var maxL4 = document.getElementById('stockBarGranary');
             max[3] = maxL4 ? (parseLocaleInt(maxL4.textContent) || 800) : 800;
 
+            // Populate the working arrays used by progressbar and timers
+            for (var k = 0; k < 4; k++) {
+                resNow[k] = res[k];
+                fullRes[k] = max[k];
+                incomepersecond[k] = income[k] / 3600;
+            }
+
+            // Save vPPH so the Sigma tab can sum production across villages
+            // Format: villageID.l1.l2.l3.l4./ per row, rows separated by ./
+            if (village_aid > 0 && income[0] !== undefined) {
+                var oldPPH = RB_getValue(GMcookieID + 'vPPH', '');
+                // Remove existing entry for this village
+                var vidStr = String(village_aid);
+                var newPPH = oldPPH.replace(new RegExp(vidStr + '\\.[^/]+\\/', 'g'), '');
+                // Append updated entry
+                newPPH += vidStr + '.' + income[0] + '.' + income[1] + '.' + income[2] + '.' + income[3] + '.\/';
+                RB_setValue(GMcookieID + 'vPPH', newPPH);
+            }
+
             return true;
         }
 
