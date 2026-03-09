@@ -245,15 +245,16 @@ find "${HTDOCS}/homepage" -type f -name "*.js" -print0 2>/dev/null \
 
 #####################################
 # systemd units + travium-sync
-# IMPORTANT NOTE honored: we keep file names and the TRAVIUM_UNDER_SYSTEMD variable.
 #####################################
 log "Installing systemd units..."
-install -d /etc/systemd/system/travium.target.wants/
 
+# 1. The Service Template
 cat >/etc/systemd/system/travium@.service <<UNIT
 [Unit]
 Description=Travium engine for %i
 After=network.target mysqld.service
+# Link instance lifecycle to the main target
+PartOf=travium.target
 
 [Service]
 User=${SITE_USER}
@@ -271,6 +272,7 @@ TimeoutStopSec=15
 WantedBy=multi-user.target
 UNIT
 
+# 2. The Main Target (for grouping)
 cat >/etc/systemd/system/travium.target <<UNIT
 [Unit]
 Description=Travium all engines
@@ -279,38 +281,48 @@ Description=Travium all engines
 WantedBy=multi-user.target
 UNIT
 
+# 3. The Sync Script (Corrected Logic)
 install -m 0755 -o root -g root /dev/stdin /usr/local/bin/travium-sync <<'SCRIPT'
 #!/usr/bin/env bash
-systemctl daemon-reload
 set -euo pipefail
+
 HTDOCS="/home/REPLACE_USER/htdocs"
 SERVERS_DIR="$HTDOCS/servers"
-TARGET_WANTS_DIR="/etc/systemd/system/travium.target.wants"
-mkdir -p "$TARGET_WANTS_DIR"
-mapfile -t desired < <(find "$SERVERS_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
-mapfile -t current < <(find "$TARGET_WANTS_DIR" -maxdepth 1 -type l -name 'travium@*.service' -printf '%f\n' | sed -E 's/^travium@(.+)\.service$/\1/' | sort)
+
+# 1. Find directories that have an engine.php
+mapfile -t desired < <(find "$SERVERS_DIR" -mindepth 1 -maxdepth 1 -type d -exec test -f "{}/include/engine.php" \; -printf '%f\n' | sort)
+
+# 2. Find currently enabled systemd units for this template
+mapfile -t current < <(systemctl list-unit-files "travium@*" --state=enabled --no-legend | awk '{print $1}' | sed -E 's/^travium@(.+)\.service$/\1/' | sort)
+
+# 3. Enable and START missing services
 for w in "${desired[@]}"; do
-  if [[ -f "$SERVERS_DIR/$w/include/engine.php" ]]; then
-    if ! systemctl is-enabled --quiet "travium@${w}.service"; then
-      echo "Enabling travium@${w}.service"
-      systemctl enable --now "travium@${w}.service"
-      ln -sf "/etc/systemd/system/travium@.service" "$TARGET_WANTS_DIR/travium@${w}.service"
+    # Enable if not enabled
+    if ! systemctl is-enabled --quiet "travium@${w}.service" 2>/dev/null; then
+        echo "Enabling travium@${w}.service"
+        systemctl enable "travium@${w}.service"
     fi
-  fi
+    
+    # Start if not running (Fixes the 'inactive dead' issue)
+    if [[ $(systemctl is-active "travium@${w}.service") != "active" ]]; then
+        echo "Starting travium@${w}.service"
+        systemctl start "travium@${w}.service"
+    fi
 done
+
+# 4. Disable and STOP removed services
 for w in "${current[@]}"; do
-  if [[ ! -d "$SERVERS_DIR/$w" ]]; then
-    echo "Disabling travium@${w}.service"
-    systemctl disable --now "travium@${w}.service" || true
-    rm -f "$TARGET_WANTS_DIR/travium@${w}.service"
-  fi
+    if [[ ! -d "$SERVERS_DIR/$w" ]]; then
+        echo "Stopping and disabling defunct service: travium@${w}.service"
+        systemctl disable --now "travium@${w}.service" || true
+    fi
 done
-systemctl daemon-reload
 SCRIPT
 
-# inject real user path into travium-sync
+# Inject real user path into travium-sync
 sed -i "s|/home/REPLACE_USER/htdocs|/home/${SITE_USER}/htdocs|g" /usr/local/bin/travium-sync
 
+# 4. The Sync Service (triggered by the Path unit)
 cat >/etc/systemd/system/travium-sync.service <<UNIT
 [Unit]
 Description=Sync Travium instances with /servers
@@ -322,23 +334,26 @@ User=root
 ExecStart=/usr/local/bin/travium-sync
 UNIT
 
+# 5. The Path Monitor
 cat >/etc/systemd/system/travium-sync.path <<UNIT
 [Unit]
 Description=Watch /home/${SITE_USER}/htdocs/servers for changes
 
 [Path]
-PathModified=/home/${SITE_USER}/htdocs/servers
+# Trigger when a folder is created, deleted, or moved
 PathChanged=/home/${SITE_USER}/htdocs/servers
 
 [Install]
 WantedBy=multi-user.target
 UNIT
 
+# 6. Activation
 chmod +x /usr/local/bin/travium-sync
 systemctl daemon-reload
-systemctl start travium-sync.service
 systemctl enable --now travium-sync.path
-systemctl enable travium.target || true
+systemctl enable travium.target
+# Run once immediately to catch existing folders
+systemctl start travium-sync.service
 
 #####################################
 # summary
