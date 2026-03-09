@@ -647,36 +647,29 @@
             var aText = "";
             var productionData = null;
 
-            // Helper: parse numbers that may use . or , as thousands separators
             function parseLocaleInt(str) {
                 if (!str) return 0;
                 var s = str.trim().replace(/[.,](?=\d{3}(?:[.,]|$))/g, '').replace(/[^0-9-]/g, '');
                 return parseInt(s) || 0;
             }
 
-            // 1. Try to find the raw script text where Travian stores resource data
             var scriptTags = document.getElementsByTagName('script');
             for (i = 0; i < scriptTags.length; i++) {
                 var t = scriptTags[i].textContent;
                 if (t.indexOf('resources.production') !== -1 || t.indexOf('production":') !== -1 || t.indexOf('production:') !== -1) {
-                    aText = t;
-                    break;
+                    aText = t; break;
                 }
             }
 
-            // 2. Parse the production object
             try {
                 if (aText !== "") {
                     var prodMatch = aText.match(/resources\.production\s*=\s*({[^}]+})/) ||
                                     aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
                     if (prodMatch) {
-                        // Try parsing as-is first (already valid JSON), then fix up unquoted keys
                         try {
                             productionData = JSON.parse(prodMatch[1]);
                         } catch(e) {
-                            var jsonStr = prodMatch[1]
-                                .replace(/'/g, '"')
-                                .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":'); // only quote unquoted keys
+                            var jsonStr = prodMatch[1].replace(/'/g, '"').replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
                             productionData = JSON.parse(jsonStr);
                         }
                     }
@@ -685,15 +678,11 @@
                 console.log("[TTQ Debug] production parse failed:", e.message);
             }
 
-            // 3. Fallback to window.resources global
             if (!productionData) {
                 var tw = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
-                if (tw.resources && tw.resources.production) {
-                    productionData = tw.resources.production;
-                }
+                if (tw.resources && tw.resources.production) productionData = tw.resources.production;
             }
 
-            // 4. Loop through the 4 resources (Wood, Clay, Iron, Crop)
             for (i = 0; i < 4; i++) {
                 var resSpan = document.getElementById('l' + (i + 1));
                 res[i] = resSpan ? parseLocaleInt(resSpan.textContent) : 0;
@@ -707,14 +696,12 @@
                 }
             }
 
-            // 5. Max capacity
             var maxL13 = document.getElementById('stockBarWarehouse');
             max[0] = max[1] = max[2] = maxL13 ? (parseLocaleInt(maxL13.textContent) || 800) : 800;
-
             var maxL4 = document.getElementById('stockBarGranary');
             max[3] = maxL4 ? (parseLocaleInt(maxL4.textContent) || 800) : 800;
 
-            return true; // MUST return truthy — caller does "if (!getResources()) return;"
+            return true;
         }
 
         function getServerTime() {
@@ -2687,20 +2674,20 @@
         var vlist_init = false;
         function vlist_addButtonsT4() {
             var vlist = $g("sidebarBoxVillagelist");
-            var villages = vlist ? Array.from(vlist.querySelectorAll('ul li')) : [];
+            var villages = vlist ? Array.from(vlist.querySelectorAll("ul li")) : [];
             var aText = $xf('//script[contains(text(),"incomingAttacksAmount")]');
             if (aText) { aText = aText.textContent }
             if (villages.length > 0) {
                 for (var vn = 0; vn < villages.length; vn++) {
                     var linkEl = $gt("a", villages[vn])[0];
                     if (!linkEl) continue;
-                    var href = linkEl.getAttribute('href') || '';
+                    var href = linkEl.getAttribute("href") || "";
                     var newdidMatch = href.match(/[?&]newdid=(\d+)/);
-                    var villageID = newdidMatch ? newdidMatch[1] : '0';
+                    var villageID = newdidMatch ? newdidMatch[1] : "0";
                     linkVSwitch[vn] = href;
                     var myVid = parseInt(villageID) || 0;
                     if (!myVid) {
-                        var coordsEl = villages[vn].querySelector('.coordinatesWrapper, .coordinatesGrid');
+                        var coordsEl = villages[vn].querySelector(".coordinatesWrapper, .coordinatesGrid");
                         if (coordsEl) myVid = getVidFromCoords(coordsEl.textContent);
                     }
                     villages_id[vn] = myVid;
@@ -2708,16 +2695,18 @@
                         var reg = new RegExp('"id":' + villageID + ',"name.+?(?=incomingAttacksAmount)incomingAttacksAmount":(\\d+)');
                         if (reg.test(aText)) {
                             if (aText.match(reg)[1] != 0) {
+                                //villages[vn].classList.add("attack");
                                 if (villages[vn].getAttribute('class') && villages[vn].getAttribute('class').match(/attack/i)) {
                                     //plusAccount = true;
                                 } else {
                                     var img = trImg('att1', aText.match(reg)[1] + ' ' + RB.dictionary[12]);
                                     img.style.backgroundSize = "14px 14px";
-                                    if (linkEl.firstElementChild) linkEl.firstElementChild.prepend(img);
+                                    linkEl.firstElementChild.prepend(img);
                                 }
                             }
                         }
                     }
+
                     if (linkEl.hasAttribute('class') && linkEl.getAttribute('class').match(/active/i)) {
                         village_aid = myVid; village_aNum = vn;
                     }
@@ -2726,11 +2715,13 @@
                     if (RB.Setup[21] != 2 && RB.Setup[39] > 0) {
                         var f12Links = addDorf12Links(linkVSwitch[vn], 0);
                         f12Links.setAttribute('class', allIDs[49]);
+                        //insertAfter(f12Links,$gc('name',linkEl)[0]);
                         insertAfter(f12Links, linkEl);
                     }
                     if (RB.Setup[21] != 2 && RB.Setup[15] > 0) {
                         var newAR = addARLinks(villages_id[vn], 0);
                         newAR.setAttribute('class', allIDs[48]);
+                        //insertAfter(newAR,$gc('name',linkEl)[0]);
                         insertAfter(newAR, linkEl);
                     }
                 }
@@ -3479,18 +3470,15 @@
 
         function parseSpieler() {
             if (villages_id[0] > 0 && RB.dictionary[0] == 0) {
-                RB.dictionary[0] = villages_id[0];
-                saveCookie('Dict', 'dictionary');
-                RB.dictFL[1] = 1;
-                saveCookie('DictFL', 'dictFL');
-                return;
+                RB.dictionary[0] = villages_id[0]; saveCookie('Dict', 'dictionary');
+                RB.dictFL[1] = 1; saveCookie('DictFL', 'dictFL'); return;
             }
             var sidebarAV = $g('sidebarBoxActiveVillage');
             var uNameEl = sidebarAV ? $gc('playerName', sidebarAV)[0] : null;
             var uName = uNameEl ? uNameEl.textContent.trim() : '';
             var playerNameEl = $gc('titleInHeader', $g('content'))[0];
             var playerName = playerNameEl ? playerNameEl.textContent.trim() : '';
-            var villageTable = $gc("villages");
+            var villageTable = $gc("villages")
             if (uName == playerName && villageTable.length > 0) {
                 try {
                     var capitalS = $gc("additionalInfo");
@@ -3500,15 +3488,19 @@
                 } catch (err) {
                     var capital = 0;
                 }
-                if (!capital || capital == 0) capital = villages_id[0] || village_aid || 1;
                 var aID = $xf('.//a[contains(@href,"alliance/")]', 'f', $g('content'));
                 var fl = false;
                 if (aID) {
                     aID = aID.getAttribute('href').match(/alliance\/(\d+)/)[1];
-                    if (aID != RB.dictionary[13]) { fl = true; RB.dictionary[13] = aID; }
+                    if (aID != RB.dictionary[13]) {
+                        fl = true;
+                        RB.dictionary[13] = aID;
+                    }
                 } else if (RB.dictionary[13] != 0) {
-                    RB.dictionary[13] = 0; aID = 0;
+                    RB.dictionary[13] = 0;
+                    aID = 0;
                 }
+                if (!capital || capital == 0) capital = villages_id[0] || village_aid || 1;
                 if (RB.dictionary[0] != capital || RB.dictFL[1] == 0 || fl) {
                     var ally = '';
                     try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1]; } catch(e) {}
@@ -3521,10 +3513,8 @@
             } else {
                 var fallback = villages_id[0] || village_aid;
                 if (fallback > 0 && RB.dictionary[0] == 0) {
-                    RB.dictionary[0] = fallback;
-                    saveCookie('Dict', 'dictionary');
-                    RB.dictFL[1] = 1;
-                    saveCookie('DictFL', 'dictFL');
+                    RB.dictionary[0] = fallback; saveCookie('Dict', 'dictionary');
+                    RB.dictFL[1] = 1; saveCookie('DictFL', 'dictFL');
                 }
             }
         }
@@ -4411,7 +4401,10 @@
                 loadZVCookie('Dorf12', 'village_dorf12');
                 var newCookie = [0];
                 var t = 1;
-                var troops = $xf('.//tr[.//img]', 'r', $g("troops"));
+                var troopsEl = $g("troops");
+                if (!troopsEl) return; // no troops table on this page
+                var troops = $xf('.//tr[.//img]', 'r', troopsEl);
+                if (!troops) return;
                 var fl = RB.village_dorf12[0] == troops.snapshotLength ? false : true;
                 for (var i = 0; i < troops.snapshotLength; i++) {
                     if (troops.snapshotItem(i).cells.length < 3) continue;
@@ -7530,9 +7523,7 @@
 
         if (villages_id[0] == 0) {
             if (RB.dictionary[0] == 0) {
-                if (!/spieler\.php/.test(crtPath)) {
-                    document.location.href = fullName + 'spieler.php';
-                }
+                if (!/spieler\.php/.test(crtPath)) document.location.href = fullName + 'spieler.php';
                 return;
             } else {
                 villages_id[0] = parseInt(RB.dictionary[0]);
