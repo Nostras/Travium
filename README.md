@@ -1,11 +1,5 @@
 # Travium — Travian T4.5 Private Server
 
-[![Status](https://img.shields.io/badge/status-production-green)](https://travium.net/)
-[![OS](https://img.shields.io/badge/Ubuntu-22.04%20%7C%2024.04-blue)](#supported-os)
-[![OS](https://img.shields.io/badge/Debian-11%20%7C%2012%20%7C%2013-blue)](#supported-os)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey)](#license)
-[![Discord](https://img.shields.io/badge/chat-Discord-5865F2)](https://discord.gg/TCjyvcctDg)
-
 A fast, stable Travian T4.5 clone with a one-click installer in a single command.
 
 ## Features
