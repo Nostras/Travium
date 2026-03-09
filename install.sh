@@ -187,7 +187,7 @@ log "Cloning Travium repo..."
 HTDOCS="/home/${SITE_USER}/htdocs"
 install -d -o "${SITE_USER}" -g "${SITE_USER}" "/home/${SITE_USER}"
 rm -rf "$HTDOCS" || true
-su - "${SITE_USER}" -c "git clone https://github.com/Travium/Travium ${HTDOCS}"
+su - "${SITE_USER}" -c "git clone -b feature/wip --single-branch https://github.com/Nostras/Travium ${HTDOCS}"
 
 log "Running composer install as ${SITE_USER}..."
 if [[ -f "${HTDOCS}/composer.json" ]]; then
