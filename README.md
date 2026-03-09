@@ -103,6 +103,12 @@ At the end you’ll see:
 
 ---
 
+## Dealing with certificates without cloudflare (yucky)
+
+1. Find the certificates in `/etc/nginx/ssl-certificates`, this should contain a `.crt` and `.key` file.
+
+2. Grab the `.crt` file and install it on your operating system.
+
 ## Contributing
 
 * Fork, branch, commit

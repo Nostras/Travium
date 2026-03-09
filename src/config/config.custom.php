@@ -45,7 +45,8 @@ $config->game->deletionTime = 3600 * 1;
     $config->game->trap_multiplier = max(ceil($config->game->speed / 4), 1);
     $config->game->cranny_multiplier = max(ceil($config->game->speed / 8), 1);
     if ($config->game->speed <= 250) {
-        $config->game->movement_speed_increase = max(round($config->game->speed / 5), 1);
+        $config->game->movement_speed_increase = ($config->game->speed > 0) ? (int) floor(log($config->game->speed, 2)) : 1;
+        // $config->game->movement_speed_increase = max(round($config->game->speed / 5), 1);
     } else {
         $config->game->movement_speed_increase = min(max(round5($config->game->speed * 8 / 100), 1), 3000);
     }
