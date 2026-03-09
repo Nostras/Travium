@@ -74,7 +74,10 @@ class HeroHelper extends HeroItems
         if(getGameSpeed() <= 10){
             return 10 + (5 * (getGameSpeed() - 1));
         }
-        return 10 * min(ceil(getGameSpeed() / 250), 50);
+        else{
+            return  10 + (5 * (getGameSpeed() - 1)) + 10 * min(ceil((getGameSpeed() - 10) / 250), 50);
+        }
+        
     }
 
     public function calcItemHealth($helmet, $body, $shoes)
