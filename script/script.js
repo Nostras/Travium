@@ -567,7 +567,6 @@
                 vIdH = hr.match(/[&\?]x=(-?\d+)&y=(-?\d+)/);
                 if (vIdH) vId = xy2id(vIdH[1], vIdH[2]);
                 else {
-                    // Private server uses newdid= which is already a coordinate-based ID
                     vIdH = hr.match(/[&\?]newdid=(\d+)/);
                     vId = vIdH ? vIdH[1] : 0;
                 }
@@ -648,11 +647,26 @@
             var aText = "";
             var productionData = null;
 
+            // Helper: parse numbers that may use . or , as thousands separators
+            // e.g. "7.415" (European) or "7,415" (US) both mean 7415
+            function parseLocaleInt(str) {
+                if (!str) return 0;
+                var s = str.trim();
+                // If it matches European format: digits, dot, exactly 3 digits (e.g. "7.415")
+                // Strip dots and commas used as thousands separators, keep minus
+                s = s.replace(/[.,](?=\d{3}(?:[.,]|$))/g, '');
+                // Strip any remaining non-numeric chars except minus
+                s = s.replace(/[^0-9-]/g, '');
+                return parseInt(s) || 0;
+            }
+
             // 1. Try to find the raw script text where Travian stores resource data
+            // Private server format: resources.production = {...}
             var scriptTags = document.getElementsByTagName('script');
             for (i = 0; i < scriptTags.length; i++) {
-                if (scriptTags[i].textContent.indexOf('production":') !== -1 || scriptTags[i].textContent.indexOf('production:') !== -1) {
-                    aText = scriptTags[i].textContent;
+                var t = scriptTags[i].textContent;
+                if (t.indexOf('resources.production') !== -1 || t.indexOf('production":') !== -1 || t.indexOf('production:') !== -1) {
+                    aText = t;
                     break;
                 }
             }
@@ -660,21 +674,24 @@
             // 2. Attempt to parse the production object from the script text
             try {
                 if (aText !== "") {
-                    // This regex handles both "prop": value and prop: value formats
-                    var prodMatch = aText.match(/production["']?:\s*({[^}]+})/);
+                    // Handle both: resources.production = {...} and production: {...}
+                    var prodMatch = aText.match(/resources\.production\s*=\s*({[^}]+})/) ||
+                                    aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
                     if (prodMatch) {
-                        // Clean up the string to make it valid JSON if it isn't already
-                        var jsonStr = prodMatch[1].replace(/'/g, '"').replace(/(\w+):/g, '"$1":');
+                        var jsonStr = prodMatch[1].replace(/'/g, '"').replace(/(\w+)\s*:/g, '"$1":');
                         productionData = JSON.parse(jsonStr);
                     }
                 }
             } catch (e) {
-                console.log("[TTQ Debug] JSON Parse failed for production, moving to fallback.");
+                console.log("[TTQ Debug] JSON Parse failed for production:", e.message);
             }
 
-            // 3. Fallback to unsafeWindow if the regex failed but the object exists
-            if (!productionData && typeof unsafeWindow.resources !== 'undefined') {
-                productionData = unsafeWindow.resources.production;
+            // 3. Fallback to window.resources if available (private server global)
+            if (!productionData) {
+                var tw = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+                if (tw.resources && tw.resources.production) {
+                    productionData = tw.resources.production;
+                }
             }
 
             // 4. Loop through the 4 resources (Wood, Clay, Iron, Crop)
@@ -682,7 +699,7 @@
                 // --- GET CURRENT STOCK ---
                 var resSpan = document.getElementById('l' + (i + 1));
                 if (resSpan) {
-                    res[i] = parseInt(resSpan.textContent.replace(/[^0-9-]/g, '')) || 0;
+                    res[i] = parseLocaleInt(resSpan.textContent);
                 } else {
                     res[i] = 0;
                 }
@@ -691,35 +708,19 @@
                 if (productionData && (productionData['l' + (i + 1)] !== undefined)) {
                     income[i] = parseInt(productionData['l' + (i + 1)]);
                 } else {
-                    // FINAL FALLBACK: Scrape the production table from the UI (works on dorf1.php)
+                    // Fallback: scrape the production table from the UI (works on dorf1.php)
                     var domProd = document.querySelector('#production td.res' + (i + 1) + ' + td.num');
                     if (!domProd) domProd = document.querySelector('#production .res' + (i + 1));
-
-                    if (domProd) {
-                        // Removes Unicode control characters and takes just the number
-                        income[i] = parseInt(domProd.textContent.replace(/[^0-9-]/g, '')) || 0;
-                    } else {
-                        income[i] = 0; // If we're not on dorf1 and JS is broken, we default to 0
-                    }
+                    income[i] = domProd ? parseLocaleInt(domProd.textContent) : 0;
                 }
             }
 
             // --- GET MAX CAPACITY ---
-            // Warehouse
             var maxL13 = document.getElementById('stockBarWarehouse');
-            if (maxL13) {
-                max[0] = max[1] = max[2] = parseInt(maxL13.textContent.replace(/[^0-9]/g, '')) || 800;
-            } else {
-                max[0] = max[1] = max[2] = 800;
-            }
+            max[0] = max[1] = max[2] = maxL13 ? parseLocaleInt(maxL13.textContent) || 800 : 800;
 
-            // Granary
             var maxL4 = document.getElementById('stockBarGranary');
-            if (maxL4) {
-                max[3] = parseInt(maxL4.textContent.replace(/[^0-9]/g, '')) || 800;
-            } else {
-                max[3] = 800;
-            }
+            max[3] = maxL4 ? parseLocaleInt(maxL4.textContent) || 800 : 800;
         }
 
         function getServerTime() {
@@ -2692,7 +2693,6 @@
         var vlist_init = false;
         function vlist_addButtonsT4() {
             var vlist = $g("sidebarBoxVillagelist");
-            // Private server uses plain <li> elements, not class "listEntry village"
             var villages = vlist ? Array.from(vlist.querySelectorAll('ul li')) : [];
             var aText = $xf('//script[contains(text(),"incomingAttacksAmount")]');
             if (aText) { aText = aText.textContent }
@@ -2701,13 +2701,10 @@
                     var linkEl = $gt("a", villages[vn])[0];
                     if (!linkEl) continue;
                     var href = linkEl.getAttribute('href') || '';
-                    // newdid IS the coordinate-based village ID on this server
                     var newdidMatch = href.match(/[?&]newdid=(\d+)/);
                     var villageID = newdidMatch ? newdidMatch[1] : '0';
                     linkVSwitch[vn] = href;
-                    // Get coordinate-based village ID directly from newdid
                     var myVid = parseInt(villageID) || 0;
-                    // Fallback: parse from coordinates span if newdid missing
                     if (!myVid) {
                         var coordsEl = villages[vn].querySelector('.coordinatesWrapper, .coordinatesGrid');
                         if (coordsEl) myVid = getVidFromCoords(coordsEl.textContent);
@@ -2717,13 +2714,12 @@
                         var reg = new RegExp('"id":' + villageID + ',"name.+?(?=incomingAttacksAmount)incomingAttacksAmount":(\\d+)');
                         if (reg.test(aText)) {
                             if (aText.match(reg)[1] != 0) {
-                                //villages[vn].classList.add("attack");
-                                if (villages[vn].getAttribute('class').match(/attack/i)) {
+                                if (villages[vn].getAttribute('class') && villages[vn].getAttribute('class').match(/attack/i)) {
                                     //plusAccount = true;
                                 } else {
                                     var img = trImg('att1', aText.match(reg)[1] + ' ' + RB.dictionary[12]);
                                     img.style.backgroundSize = "14px 14px";
-                                    linkEl.firstElementChild.prepend(img);
+                                    if (linkEl.firstElementChild) linkEl.firstElementChild.prepend(img);
                                 }
                             }
                         }
@@ -2737,13 +2733,11 @@
                     if (RB.Setup[21] != 2 && RB.Setup[39] > 0) {
                         var f12Links = addDorf12Links(linkVSwitch[vn], 0);
                         f12Links.setAttribute('class', allIDs[49]);
-                        //insertAfter(f12Links,$gc('name',linkEl)[0]);
                         insertAfter(f12Links, linkEl);
                     }
                     if (RB.Setup[21] != 2 && RB.Setup[15] > 0) {
                         var newAR = addARLinks(villages_id[vn], 0);
                         newAR.setAttribute('class', allIDs[48]);
-                        //insertAfter(newAR,$gc('name',linkEl)[0]);
                         insertAfter(newAR, linkEl);
                     }
                 }
@@ -3491,7 +3485,6 @@
         }
 
         function parseSpieler() {
-            // If we already have village IDs from the sidebar, just ensure dictionary is saved
             if (villages_id[0] > 0 && RB.dictionary[0] == 0) {
                 RB.dictionary[0] = villages_id[0];
                 saveCookie('Dict', 'dictionary');
@@ -3514,7 +3507,6 @@
                 } catch (err) {
                     var capital = 0;
                 }
-                // Fallback: use sidebar village ID so we never loop
                 if (!capital || capital == 0) capital = villages_id[0] || village_aid || 1;
                 var aID = $xf('.//a[contains(@href,"alliance/")]', 'f', $g('content'));
                 var fl = false;
@@ -3534,7 +3526,6 @@
                     saveCookie('DictFL', 'dictFL');
                 }
             } else {
-                // Profile page structure didn't match — save whatever village ID we have to stop looping
                 var fallback = villages_id[0] || village_aid;
                 if (fallback > 0 && RB.dictionary[0] == 0) {
                     RB.dictionary[0] = fallback;
@@ -7546,11 +7537,10 @@
 
         if (villages_id[0] == 0) {
             if (RB.dictionary[0] == 0) {
-                // Only redirect to spieler.php if we are not already there
                 if (!/spieler\.php/.test(crtPath)) {
                     document.location.href = fullName + 'spieler.php';
                 }
-                return; // stop here either way — parseSpieler will save the village ID
+                return;
             } else {
                 villages_id[0] = parseInt(RB.dictionary[0]);
                 village_aid = villages_id[0];
