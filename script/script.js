@@ -565,7 +565,12 @@
             if (vIdH) vId = vIdH[1];
             else {
                 vIdH = hr.match(/[&\?]x=(-?\d+)&y=(-?\d+)/);
-                vId = vIdH ? xy2id(vIdH[1], vIdH[2]) : 0;
+                if (vIdH) vId = xy2id(vIdH[1], vIdH[2]);
+                else {
+                    // Private server uses newdid= which is already a coordinate-based ID
+                    vIdH = hr.match(/[&\?]newdid=(\d+)/);
+                    vId = vIdH ? vIdH[1] : 0;
+                }
             }
             return vId;
         }
@@ -2687,19 +2692,26 @@
         var vlist_init = false;
         function vlist_addButtonsT4() {
             var vlist = $g("sidebarBoxVillagelist");
-            var villages = $gc("listEntry village", vlist);
+            // Private server uses plain <li> elements, not class "listEntry village"
+            var villages = vlist ? Array.from(vlist.querySelectorAll('ul li')) : [];
             var aText = $xf('//script[contains(text(),"incomingAttacksAmount")]');
             if (aText) { aText = aText.textContent }
             if (villages.length > 0) {
                 for (var vn = 0; vn < villages.length; vn++) {
                     var linkEl = $gt("a", villages[vn])[0];
-                    var villageID = villages[vn].getAttribute('data-did');
-                    //linkVSwitch[vn] = linkEl.getAttribute('href');
-                    var params = new URLSearchParams(urlParams);
-                    params.set("newdid", villageID);
-                    linkVSwitch[vn] = "?" + params.toString();
-                    var coords = $gc("coordinatesGrid", villages[vn])[0];
-                    var myVid = getVidFromCoords(coords.innerHTML);
+                    if (!linkEl) continue;
+                    var href = linkEl.getAttribute('href') || '';
+                    // newdid IS the coordinate-based village ID on this server
+                    var newdidMatch = href.match(/[?&]newdid=(\d+)/);
+                    var villageID = newdidMatch ? newdidMatch[1] : '0';
+                    linkVSwitch[vn] = href;
+                    // Get coordinate-based village ID directly from newdid
+                    var myVid = parseInt(villageID) || 0;
+                    // Fallback: parse from coordinates span if newdid missing
+                    if (!myVid) {
+                        var coordsEl = villages[vn].querySelector('.coordinatesWrapper, .coordinatesGrid');
+                        if (coordsEl) myVid = getVidFromCoords(coordsEl.textContent);
+                    }
                     villages_id[vn] = myVid;
                     if (!plusAccount) {
                         var reg = new RegExp('"id":' + villageID + ',"name.+?(?=incomingAttacksAmount)incomingAttacksAmount":(\\d+)');
@@ -3479,8 +3491,16 @@
         }
 
         function parseSpieler() {
-            var sidebarActiveVillage = $g('sidebarBoxActiveVillage');
-            var uNameEl = sidebarActiveVillage ? $gc('playerName', sidebarActiveVillage)[0] : null;
+            // If we already have village IDs from the sidebar, just ensure dictionary is saved
+            if (villages_id[0] > 0 && RB.dictionary[0] == 0) {
+                RB.dictionary[0] = villages_id[0];
+                saveCookie('Dict', 'dictionary');
+                RB.dictFL[1] = 1;
+                saveCookie('DictFL', 'dictFL');
+                return;
+            }
+            var sidebarAV = $g('sidebarBoxActiveVillage');
+            var uNameEl = sidebarAV ? $gc('playerName', sidebarAV)[0] : null;
             var uName = uNameEl ? uNameEl.textContent.trim() : '';
             var playerNameEl = $gc('titleInHeader', $g('content'))[0];
             var playerName = playerNameEl ? playerNameEl.textContent.trim() : '';
@@ -3494,39 +3514,34 @@
                 } catch (err) {
                     var capital = 0;
                 }
-                // Fallback: use first known village ID so we don't loop forever
-                if (!capital || capital == 0) {
-                    capital = villages_id[0] || village_aid || 1;
-                }
+                // Fallback: use sidebar village ID so we never loop
+                if (!capital || capital == 0) capital = villages_id[0] || village_aid || 1;
                 var aID = $xf('.//a[contains(@href,"alliance/")]', 'f', $g('content'));
                 var fl = false;
                 if (aID) {
                     aID = aID.getAttribute('href').match(/alliance\/(\d+)/)[1];
-                    if (aID != RB.dictionary[13]) {
-                        fl = true;
-                        RB.dictionary[13] = aID;
-                    }
+                    if (aID != RB.dictionary[13]) { fl = true; RB.dictionary[13] = aID; }
                 } else if (RB.dictionary[13] != 0) {
-                    RB.dictionary[13] = 0;
-                    aID = 0;
+                    RB.dictionary[13] = 0; aID = 0;
                 }
                 if (RB.dictionary[0] != capital || RB.dictFL[1] == 0 || fl) {
                     var ally = '';
-                    try {
-                        ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1];
-                    } catch(e) { ally = ''; }
+                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1]; } catch(e) {}
                     RB.dictionary[0] = capital;
                     RB.dictionary[1] = ally;
                     saveCookie('Dict', 'dictionary');
                     RB.dictFL[1] = 1;
                     saveCookie('DictFL', 'dictFL');
                 }
-            } else if (villages_id[0] > 0 && RB.dictionary[0] == 0) {
-                // Profile page structure didn't match, but we have village IDs from sidebar — save them
-                RB.dictionary[0] = villages_id[0];
-                saveCookie('Dict', 'dictionary');
-                RB.dictFL[1] = 1;
-                saveCookie('DictFL', 'dictFL');
+            } else {
+                // Profile page structure didn't match — save whatever village ID we have to stop looping
+                var fallback = villages_id[0] || village_aid;
+                if (fallback > 0 && RB.dictionary[0] == 0) {
+                    RB.dictionary[0] = fallback;
+                    saveCookie('Dict', 'dictionary');
+                    RB.dictFL[1] = 1;
+                    saveCookie('DictFL', 'dictFL');
+                }
             }
         }
 
@@ -7529,11 +7544,17 @@
         vlist_addButtonsT4();
         loadCookie('Dict', 'dictionary');
 
-        if (villages_id[0] == 0) if (RB.dictionary[0] == 0) {
-            document.location.href = fullName + 'spieler.php';
-        } else {
-            villages_id[0] = parseInt(RB.dictionary[0]);
-            village_aid = villages_id[0];
+        if (villages_id[0] == 0) {
+            if (RB.dictionary[0] == 0) {
+                // Only redirect to spieler.php if we are not already there
+                if (!/spieler\.php/.test(crtPath)) {
+                    document.location.href = fullName + 'spieler.php';
+                }
+                return; // stop here either way — parseSpieler will save the village ID
+            } else {
+                villages_id[0] = parseInt(RB.dictionary[0]);
+                village_aid = villages_id[0];
+            }
         }
         loadAllCookie();
         var LC = setLC();
