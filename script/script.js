@@ -481,9 +481,12 @@
         function newOption(node, text, value) { node.appendChild($ee('OPTION', text, [['value', value]])); }
 
         // Safer ID selector
+        // IDs that are legitimately absent on many pages - suppress warnings for these
+        var $g_optional = new Set(['villageBoxes','llist','villageContent','resourceFieldContainer',
+            'villageNameField','villageName','troops','movements','PlayerProfileEditor']);
         function $g(id) {
             const el = document.getElementById(id);
-            if (!el) { console.warn(`[TTQ Debug] Element ID not found: ${id}`); }
+            if (!el && !$g_optional.has(id)) { console.warn(`[TTQ Debug] Element ID not found: ${id}`); }
             return el;
         }
 
@@ -4736,8 +4739,8 @@
                 imgs[j] = $gt('svg', childrenB[j])[0];
             }
             var vlist = $g("sidebarBoxVillagelist");
-            imgs[4] = $gt('svg', vlist)[0];
-            imgs[4].style.width = '24px';
+            imgs[4] = vlist ? $gt('svg', vlist)[0] : null;
+            if (imgs[4]) imgs[4].style.width = '24px';
 
             imgs[5] = $e('i', [['class', 'healTime_medium'], ['style', 'filter: grayscale(100%);']]);
 
