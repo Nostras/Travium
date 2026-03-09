@@ -5007,7 +5007,8 @@
                 }
             }
             var vNF;
-            vNF = $g('villageName');
+            vNF = $g('villageNameField') || $g('villageName');
+            if (!vNF) return;
             vNF.style.display = 'inline-block';
             vNF.style.overflow = 'initial';
             var vName = RB.vHint[village_aid] || '';
