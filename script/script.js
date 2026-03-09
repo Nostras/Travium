@@ -2686,7 +2686,7 @@
 
         var vlist_init = false;
         function vlist_addButtonsT4() {
-            var vlist = $g("sidebarBoxVillageList");
+            var vlist = $g("sidebarBoxVillagelist");
             var villages = $gc("listEntry village", vlist);
             var aText = $xf('//script[contains(text(),"incomingAttacksAmount")]');
             if (aText) { aText = aText.textContent }
@@ -3479,9 +3479,12 @@
         }
 
         function parseSpieler() {
-            var uName = $gc('playerName', $g('sidebarBoxActiveVillage'))[0].textContent.trim();
-            var playerName = $gc('titleInHeader', $g('content'))[0].textContent.trim();
-            var villageTable = $gc("villages")
+            var sidebarActiveVillage = $g('sidebarBoxActiveVillage');
+            var uNameEl = sidebarActiveVillage ? $gc('playerName', sidebarActiveVillage)[0] : null;
+            var uName = uNameEl ? uNameEl.textContent.trim() : '';
+            var playerNameEl = $gc('titleInHeader', $g('content'))[0];
+            var playerName = playerNameEl ? playerNameEl.textContent.trim() : '';
+            var villageTable = $gc("villages");
             if (uName == playerName && villageTable.length > 0) {
                 try {
                     var capitalS = $gc("additionalInfo");
@@ -3490,6 +3493,10 @@
                     }
                 } catch (err) {
                     var capital = 0;
+                }
+                // Fallback: use first known village ID so we don't loop forever
+                if (!capital || capital == 0) {
+                    capital = villages_id[0] || village_aid || 1;
                 }
                 var aID = $xf('.//a[contains(@href,"alliance/")]', 'f', $g('content'));
                 var fl = false;
@@ -3504,17 +3511,26 @@
                     aID = 0;
                 }
                 if (RB.dictionary[0] != capital || RB.dictFL[1] == 0 || fl) {
-                    var ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1];
+                    var ally = '';
+                    try {
+                        ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1];
+                    } catch(e) { ally = ''; }
                     RB.dictionary[0] = capital;
                     RB.dictionary[1] = ally;
                     saveCookie('Dict', 'dictionary');
                     RB.dictFL[1] = 1;
                     saveCookie('DictFL', 'dictFL');
                 }
+            } else if (villages_id[0] > 0 && RB.dictionary[0] == 0) {
+                // Profile page structure didn't match, but we have village IDs from sidebar — save them
+                RB.dictionary[0] = villages_id[0];
+                saveCookie('Dict', 'dictionary');
+                RB.dictFL[1] = 1;
+                saveCookie('DictFL', 'dictFL');
             }
         }
 
-        var vLinksPat = '//div[@id="sidebarBoxVillageList"]//a//span[@class="name"]';
+        var vLinksPat = '//div[@id="sidebarBoxVillagelist"]//a//span[@class="name"]';
 
         function overviewWarehouse() {
             function refreshOview() {
@@ -4708,7 +4724,7 @@
             for (var j = 0; j < childrenB.length; j++) {
                 imgs[j] = $gt('svg', childrenB[j])[0];
             }
-            var vlist = $g("sidebarBoxVillageList");
+            var vlist = $g("sidebarBoxVillagelist");
             imgs[4] = $gt('svg', vlist)[0];
             imgs[4].style.width = '24px';
 
