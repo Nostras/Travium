@@ -4936,10 +4936,12 @@
         function addRefIGM(idBlock) {
             if (RB.Setup[18] == 0 && RB.Setup[19] == 0) return;
             var idB = idBlock || pageElem[1];
-            var mLinks = $xf('.//a[contains(@href, "/profile/")]', 'l', $g(idB));
-            for (var j = 0; j < mLinks.snapshotLength; j++) {
+            var idBEl = $g(idB);
+            if (!idBEl) return;
+            var mLinks = $xf('.//a[contains(@href, "/profile/") or contains(@href, "spieler.php")]', 'l', idBEl);
+            if (mLinks) for (var j = 0; j < mLinks.snapshotLength; j++) {
                 var al = mLinks.snapshotItem(j);
-                var uid = al.getAttribute('href').match(/profile\/(\d+)/);
+                var uid = al.getAttribute('href').match(/profile\/(\d+)/) || al.getAttribute('href').match(/uid=(\d+)/);
                 if (uid) uid = uid[1]; else continue;
                 if (uid != userID && uid != 1) {
                     al.style.display = 'inline';
@@ -4948,8 +4950,8 @@
                 }
             }
             if (RB.Setup[19] > 0) {
-                var mLinks = $xf('.//a[contains(@href, "alliance/")]', 'r', $g(idB));
-                for (var j = 0; j < mLinks.snapshotLength; j++) {
+                var mLinks = $xf('.//a[contains(@href, "alliance/")]', 'r', idBEl);
+                if (mLinks) for (var j = 0; j < mLinks.snapshotLength; j++) {
                     var al = mLinks.snapshotItem(j);
                     var uid = al.getAttribute('href').match(/alliance\/(\d+)/);
                     if (uid) uid = uid[1]; else continue;
