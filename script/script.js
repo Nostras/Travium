@@ -454,7 +454,7 @@
             aR.send(param);
         }
         Number.prototype.NaN0 = function () { return isNaN(this) ? 0 : this; }
-        String.prototype.trim = function () { return this.replace(/&nbsp;/g, '').replace(/^\s+|\s+$/g, ''); }
+        // String.prototype.trim NOT overridden — native trim must be preserved for jQuery 3.x compatibility
         String.prototype.onlyText = function () { return this.replace(/([\u2000-\u20ff])/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[\s\S]+?>/g, ''); }
         String.prototype.firstText = function () { return this.replace(/&lt;/, '<').split('<')[0].trim(); }
         function $gn(aID) { return (aID != '' ? document.getElementsByName(aID) : null); }
