@@ -482,8 +482,8 @@
 
         // Safer ID selector
         // IDs that are legitimately absent on many pages - suppress warnings for these
-        var $g_optional = new Set(['villageBoxes','llist','villageContent','resourceFieldContainer',
-            'villageNameField','villageName','troops','movements','PlayerProfileEditor']);
+        var $g_optional = new Set(['villageBoxes', 'llist', 'villageContent', 'resourceFieldContainer',
+            'villageNameField', 'villageName', 'troops', 'movements', 'PlayerProfileEditor']);
         function $g(id) {
             const el = document.getElementById(id);
             if (!el && !$g_optional.has(id)) { console.warn(`[TTQ Debug] Element ID not found: ${id}`); }
@@ -667,11 +667,11 @@
             try {
                 if (aText !== "") {
                     var prodMatch = aText.match(/resources\.production\s*=\s*({[^}]+})/) ||
-                                    aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
+                        aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
                     if (prodMatch) {
                         try {
                             productionData = JSON.parse(prodMatch[1]);
-                        } catch(e) {
+                        } catch (e) {
                             var jsonStr = prodMatch[1].replace(/'/g, '"').replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
                             productionData = JSON.parse(jsonStr);
                         }
@@ -3525,7 +3525,7 @@
                 if (!capital || capital == 0) capital = villages_id[0] || village_aid || 1;
                 if (RB.dictionary[0] != capital || RB.dictFL[1] == 0 || fl) {
                     var ally = '';
-                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1]; } catch(e) {}
+                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1]; } catch (e) { }
                     RB.dictionary[0] = capital;
                     RB.dictionary[1] = ally;
                     saveCookie('Dict', 'dictionary');
@@ -7508,6 +7508,16 @@
         checkPlusAccount();
 
         if (RB.Setup[2] == 3 || RB.Setup[2] == 4 || RB.Setup[2] > 8) { RB.Setup[2] = 0; saveCookie('RBSetup', 'Setup'); }
+        // Pre-populate map size from TravianDefaults before Variables.js check
+        {
+            var tw = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+            if (tw.TravianDefaults && tw.TravianDefaults.Map && tw.TravianDefaults.Map.Size) {
+                if (RB.Setup[48] == 0) { RB.Setup[48] = tw.TravianDefaults.Map.Size.width; }
+            }
+            if (tw.Travian && tw.Travian.Game) {
+                if (RB.Setup[45] == 0 && tw.Travian.Game.speed) { RB.Setup[45] = tw.Travian.Game.speed; }
+            }
+        }
         var aText = $xf('//script[contains(@src, "/Variables.js")]');
         if (aText) {
             if (RB.Setup[45] == 0 || RB.Setup[46] == 0 || RB.Setup[47] == 0 || RB.Setup[48] == 0 || RB.Setup[50] == 0 || RB.Setup[52] == 0) {
@@ -7538,6 +7548,16 @@
         }
 
         TroopsData();
+        // Fallback map size from TravianDefaults (private server) if Setup[48] not yet saved
+        if (!RB.Setup[48] || RB.Setup[48] == 0) {
+            var tw = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+            if (tw.TravianDefaults && tw.TravianDefaults.Map && tw.TravianDefaults.Map.Size) {
+                RB.Setup[48] = tw.TravianDefaults.Map.Size.width;
+                saveCookie('RBSetup', 'Setup');
+            } else {
+                RB.Setup[48] = 201; // hardcoded fallback
+            }
+        }
         var mapWidth = RB.Setup[48];
         var mapRadius = (mapWidth - 1) / 2;
 
