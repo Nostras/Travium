@@ -4643,6 +4643,7 @@
 
         function addSpeedAndRTSend(iBl, href) {
             var mLinks = $xf('.//a[contains(@href, "' + (typeof href == 'undefined' ? "karte.php?" : "position_details.php?") + '")]', 'r', (typeof iBl == 'undefined' ? cont : iBl));
+            if (!mLinks) return;
             for (var j = 0; j < mLinks.snapshotLength; j++) {
                 var existT = $gc(allIDs[29], mLinks.snapshotItem(j));
                 if (existT.length > 0) continue; else mLinks.snapshotItem(j).appendChild($e('SPAN', [['class', allIDs[29]]]));
@@ -5636,8 +5637,10 @@
                 XY = [parseInt(oX.value), parseInt(oY.value)];
                 var zoom = parseInt(oZ.value); if (zoom > 3 || zoom < 1) zoom = 2;
                 var rK = 1;
-                var dX = 21;
-                var dY = 17;
+                // dX/dY must match the tile coverage of the zoomLevel used.
+                // zoomLevel=2 returns 17 wide x 21 tall; zoomLevel=1 returns ~21 wide x 17 tall.
+                var dX = 17;
+                var dY = 21;
                 var newY = XY[1] - Math.round((zoom - 1) * dY / 2);
                 if (newY > mapRadius) { newY = newY - 2 * mapRadius };
                 if (newY < -mapRadius) { newY = newY + 2 * mapRadius };
@@ -5782,7 +5785,7 @@
                 return [pl, ar];
             }
             function cropFindGetMap(a) {
-                param = 'cmd=mapPositionData&data%5Bx%5D=' + a.rX + '&data%5By%5D=' + a.rY + '&data%5BzoomLevel%5D=1';
+                param = 'cmd=mapPositionData&data%5Bx%5D=' + a.rX + '&data%5By%5D=' + a.rY + '&data%5BzoomLevel%5D=2';
                 ajaxRequest(fullName + 'ajax.php?cmd=mapPositionData', 'POST', param, function (ajaxResp) {
                     var mapData = JSON.parse(ajaxResp.responseText);
                     if (mapData.response && mapData.response.data && mapData.response.data.tiles) mapData = mapData.response.data;
