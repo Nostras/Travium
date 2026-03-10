@@ -1262,8 +1262,8 @@
             }
 
             var baseWrap = $xf('.//div[contains(@class,"resourceWrapper")]', 'l', cont);
-            for (var i = 0; i < baseWrap.snapshotLength; i++) {
-                var base = baseWrap.snapshotItem(i);
+            for (var i = 0; i < baseWrap.length; i++) {
+                var base = baseWrap[i];
                 if (! />(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/.test(base.innerHTML)) break;
                 var newD = needed_show(base.innerHTML);
                 if (base.parentNode.classList.contains("contractWrapper") || base.parentNode.classList.contains("information") || base.parentNode.classList.contains("details") || (/hero/.test(crtPath))) {
@@ -1327,10 +1327,10 @@
                 villageLink.length = 0;
                 cM.innerHTML = iHTML2;
                 var mLinks = $xf('.//span/a', 'l', cM);
-                for (var i = 0; i < mLinks.snapshotLength; i++) {
-                    distanceTooltip(mLinks.snapshotItem(i), 0);
-                    sendResTropAdd(mLinks.snapshotItem(i), 1);
-                    linkHint(mLinks.snapshotItem(i));
+                for (var i = 0; i < mLinks.length; i++) {
+                    distanceTooltip(mLinks[i], 0);
+                    sendResTropAdd(mLinks[i], 1);
+                    linkHint(mLinks[i]);
                 }
             }
         }
@@ -1844,9 +1844,9 @@
             }
 
             var selTable = $xf('.//table[@id="sell"]', 'l', cont);
-            switch (selTable.snapshotLength) {
+            switch (selTable.length) {
                 case 0: return;
-                case 1: selTable = selTable.snapshotItem(0); break
+                case 1: selTable = selTable[0]; break
                 default: selTable = $xf('.//form[contains(@style,"inline")]//table[@id="sell"]', 'f', cont);
             }
             var maxR = 0;
@@ -2614,8 +2614,8 @@
             RB_setValue(GMcookieID + 'next', xy);
             if (distInVilageFL) {
                 var vLinks = $xf(vLinksPat, 'l');
-                for (var vn = 0; vn < vLinks.snapshotLength; vn++)
-                    distInVilage[villages_id[vn]] = vLinks.snapshotItem(vn).innerHTML;
+                for (var vn = 0; vn < vLinks.length; vn++)
+                    distInVilage[villages_id[vn]] = vLinks[vn].innerHTML;
                 distInVilageFL = false;
             }
             ddd = $gn('y')[0].parentNode.parentNode;
@@ -2640,9 +2640,9 @@
         function incomeResourcesInRP34() {
             var townTables = $xf('.//table[.//td[@class="role"]/a]', 'l', cont);
             resourceCalculatorInit();
-            if (all_moving == townTables.snapshotLength) return; else all_moving = townTables.snapshotLength;
-            for (var i = 0; i < townTables.snapshotLength; i++) {
-                var ttable = townTables.snapshotItem(i);
+            if (all_moving == townTables.length) return; else all_moving = townTables.length;
+            for (var i = 0; i < townTables.length; i++) {
+                var ttable = townTables[i];
                 var vID = $xf('thead/tr/td[@class="role"]/a', 'f', ttable).getAttribute('href').match(/d=(\d+)/)[1];
                 var mLinks = $xf('tbody/tr/td/div[@class="res"]', 'f', ttable);
                 if (mLinks && RB.Setup[10] > 0) {
@@ -2651,8 +2651,8 @@
                     if (incomingRes) resourceCalculator(ttable, timeToGo, incomingRes);
                 }
             }
-            if (RB.Setup[10] > 1 && rpCount > 0) resourceCalculatorSumm(townTables.snapshotItem(0), timeToGo);
-            if (RB.Setup[10] > 2 && rpCount > 0) redLinesSumm(townTables.snapshotItem(0));
+            if (RB.Setup[10] > 1 && rpCount > 0) resourceCalculatorSumm(townTables[0], timeToGo);
+            if (RB.Setup[10] > 2 && rpCount > 0) redLinesSumm(townTables[0]);
         }
 
         function addARLinks(myVid, aDirect) {
@@ -3203,8 +3203,8 @@
                     //*end detect Tribe
                     //add clear inputs
                     var troopInp = $xf('.//input[contains(@name,"troop") and not(contains(@class,"disable"))]', 'l', tt);
-                    for (var i = 0; i < troopInp.snapshotLength; i++) {
-                        //insertAfter($ee('a',' 0',[['href','#'],['onclick',"jQuery('table#troops').find('input[name=\\\'"+troopInp.snapshotItem(i).getAttribute("name")+"\\\']').val(\'\').focus(); return false;"]]),troopInp.snapshotItem(i));
+                    for (var i = 0; i < troopInp.length; i++) {
+                        //insertAfter($ee('a',' 0',[['href','#'],['onclick',"jQuery('table#troops').find('input[name=\\\'"+troopInp[i].getAttribute("name")+"\\\']').val(\'\').focus(); return false;"]]),troopInp[i]);
                     }
                     //tt.firstElementChild.appendChild($ee('TR',$c($ee('a','&#x2716;',[['href','#'],['onclick',"jQuery('table#troops').find('input').val(\'\'); return false;"]]),[['colspan',12],['style','text-align:'+docDir[1]+';padding-top: 0px;']])));
                     addShowDistanceIn(ss, 0);
@@ -3521,7 +3521,7 @@
                 if (!capital || capital == 0) capital = villages_id[0] || village_aid || 1;
                 if (RB.dictionary[0] != capital || RB.dictFL[1] == 0 || fl) {
                     var ally = '';
-                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1]; } catch(e) {}
+                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont)[2].innerHTML.match(/>(.+?):?</)[1]; } catch(e) {}
                     RB.dictionary[0] = capital;
                     RB.dictionary[1] = ally;
                     saveCookie('Dict', 'dictionary');
@@ -3562,8 +3562,8 @@
             var t = 0;
             var nowTime = Math.round((Date.now()) / 1000);
             var vLinks = $xf(vLinksPat, 'l');
-            for (var vn = 0; vn < vLinks.snapshotLength; vn++) {
-                var vName = $a(vLinks.snapshotItem(vn).innerHTML, [['href', linkVSwitch[vn]]]);
+            for (var vn = 0; vn < vLinks.length; vn++) {
+                var vName = $a(vLinks[vn].innerHTML, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
                 loadVCookie('vPPH', 'village_PPH', villages_id[vn]);
@@ -3645,8 +3645,8 @@
             var resSumm = [0, 0, 0, 0, 0];
             var nowTime = Math.round((Date.now()) / 1000);
             var vLinks = $xf(vLinksPat, 'l');
-            for (var vn = 0; vn < vLinks.snapshotLength; vn++) {
-                var vName = $a(vLinks.snapshotItem(vn).innerHTML, [['href', linkVSwitch[vn]]]);
+            for (var vn = 0; vn < vLinks.length; vn++) {
+                var vName = $a(vLinks[vn].innerHTML, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
                 loadVCookie('vPPH', 'village_PPH', villages_id[vn]);
@@ -3701,8 +3701,8 @@
 
             var newTBody = $e('TBODY');
             var vLinks = $xf(vLinksPat, 'l');
-            for (var vn = 0; vn < vLinks.snapshotLength; vn++) {
-                var vName = $a(vLinks.snapshotItem(vn).innerHTML, [['href', linkVSwitch[vn]]]);
+            for (var vn = 0; vn < vLinks.length; vn++) {
+                var vName = $a(vLinks[vn].innerHTML, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
 
@@ -4130,8 +4130,8 @@
                 var allIn = $xf('.//table[tbody/tr/td/div[@class="in"]]', 'l');
                 var hrefCache = [];
                 var curTO = 0;
-                for (var i = 0; i < allIn.snapshotLength; i++) {
-                    ttable[i] = allIn.snapshotItem(i);
+                for (var i = 0; i < allIn.length; i++) {
+                    ttable[i] = allIn[i];
                     thref[i] = $xf('thead/tr/td[@class="role"]/a', 'f', ttable[i]).getAttribute('href');
                     thref[i] = thref[i].substring(1);
                     hrefCache[thref[i]] = true;
@@ -4167,10 +4167,10 @@
                     if (!ad) return;
                     nP = getNextReportPage(ad);
                     var allIn = $xf('.//table[tbody/tr/td/div[@class="in"]]', 'l', ad);
-                    for (var i = 0; i < allIn.snapshotLength; i++) {
-                        var town = $xf('.//td[@class="role"]/a', 'f', allIn.snapshotItem(i));
+                    for (var i = 0; i < allIn.length; i++) {
+                        var town = $xf('.//td[@class="role"]/a', 'f', allIn[i]);
                         if (getVid(town.getAttribute('href')) == village_aid) continue;
-                        var adT = allIn.snapshotItem(i).cloneNode(true);
+                        var adT = allIn[i].cloneNode(true);
                         filterITObj.actD.appendChild(adT);
                     }
                     ad = null;
@@ -4285,7 +4285,7 @@
         function viewMessageIW() {
             function selectMessage(num) {
                 var allRows = $xf('.//tr[td/@class="sel"]', 'l', cont);
-                var tds = allRows.snapshotItem(num).cells;
+                var tds = allRows[num].cells;
                 $gt('INPUT', tds[0])[0].click();
                 var aLinks = $xf('.//a[(contains(@href, "?id=") or contains(@href, "messages/")) and not(contains(@href, "toggleState=")) and not(contains(@href, "mark=")) and not(contains(@href, "build.php"))]', 'f', tds[1]);
                 var aLink = aLinks.href;
@@ -4294,9 +4294,9 @@
             }
 
             var allRows = $xf('.//tr[td/@class="sel"]', 'l', cont);
-            for (var i = 0; i < allRows.snapshotLength; i++) {
-                if (allRows.snapshotItem(i).className) continue;
-                var td = allRows.snapshotItem(i).cells[1];
+            for (var i = 0; i < allRows.length; i++) {
+                if (allRows[i].className) continue;
+                var td = allRows[i].cells[1];
                 var newImg = $e('IMG', [['src', img_view]]);
                 newImg.addEventListener('click', function (x) { return function () { selectMessage(x); } }(i), false);
                 $at(newImg, [['style', 'position:relative;float:' + docDir[0] + ';' + (/report/.test(crtPath) ? '' : docDir[0] + ':-6px;')]]);
@@ -4338,8 +4338,8 @@
         function viewMessageIWK(piBl) {
             var iBl = piBl || cont;
             var allRows = $xf('.//td[.//a[contains(@href, "report?id=")]]', 'l', iBl);
-            for (var i = 0; i < allRows.snapshotLength; i++) {
-                var td = allRows.snapshotItem(i);
+            for (var i = 0; i < allRows.length; i++) {
+                var td = allRows[i];
                 var aLink = $xf('.//a[contains(@href, "report?")]', 'f', td).href;
                 var newImg = $e('IMG', [['src', img_view]]);
                 if (/alliance/.test(crtPath))
@@ -4749,10 +4749,10 @@
 
             if (villageBoxes) {
                 var greenbuttons = $xf('.//div[contains(@class,"quickLinks")]/button[contains(@class,"settings") and contains(@class,"gold")]', 'l', sidebarBoxActiveVillage);
-                if (greenbuttons.snapshotLength > 0) {
+                if (greenbuttons.length > 0) {
                     var quickLinkSlot = $xf('.//div[contains(@class,"quickLinkSlot")]', 'l', sidebarBoxActiveVillage);
-                    for (var i = 0; i < quickLinkSlot.snapshotLength; i++) {
-                        quickLinkSlot.snapshotItem(i).style.display = "none";
+                    for (var i = 0; i < quickLinkSlot.length; i++) {
+                        quickLinkSlot[i].style.display = "none";
                     }
                     bigIconsHeader.insertBefore(CreateBigLinkButton('workshop', 1), bigIconsHeader.firstChild);
                     bigIconsHeader.insertBefore(CreateBigLinkButton('stable', 5), bigIconsHeader.firstChild);
@@ -5124,10 +5124,10 @@
             var oFL = true;
             var uFL = true;
             var townTables = $xf('.//table[.//td[@class="role"]/a[contains(@href,"' + village_aid + '")]]', 'l', cont);
-            if (townTables.snapshotLength == 0) return;
+            if (townTables.length == 0) return;
             var ownTable = false;
-            for (var i = 0; i < townTables.snapshotLength; i++) {
-                var ttable = townTables.snapshotItem(i);
+            for (var i = 0; i < townTables.length; i++) {
+                var ttable = townTables[i];
                 uFL = (new RegExp("profile/" + userID)).test(ttable.rows[0].cells[1].innerHTML);
                 if (oFL || !uFL) for (var t = 0; t < 10; t++) {
                     var tC = parseInt(ttable.rows[2].cells[t + 1].innerHTML);
@@ -5301,18 +5301,18 @@
         function getTroopsInOasis(vf) {
             var oasisSearch = false;
             var troopsTR = $xf('.//tr[td/img[contains(@class, "unit u")]]', 'l', vf);
-            if (troopsTR.snapshotLength < 1) {
+            if (troopsTR.length < 1) {
                 troopsTR = $xf('.//div[i[contains(@class, "unit u")]]', 'l', vf);
-                if (troopsTR.snapshotLength < 1) return false;
+                if (troopsTR.length < 1) return false;
                 oasisSearch = true;
             }
             var ITTb = $e('TBODY');
             var newITT = $ee('TABLE', ITTb, [['class', allIDs[7]]]);
             var ti = [0, 0, 0, 0];
             var ts = [0, 0, 0, 0];
-            for (var i = 0; i < troopsTR.snapshotLength; i++) {
-                tt = oasisSearch ? parseInt($gt('i', troopsTR.snapshotItem(i))[0].getAttribute('class').match(/\d+/)[0]) : parseInt($gt('IMG', troopsTR.snapshotItem(i))[0].getAttribute('class').match(/\d+/)[0]);
-                tc = oasisSearch ? parseInt($gt('span', troopsTR.snapshotItem(i))[0].textContent) : toNumber(troopsTR.snapshotItem(i).cells[1].innerHTML);
+            for (var i = 0; i < troopsTR.length; i++) {
+                tt = oasisSearch ? parseInt($gt('i', troopsTR[i])[0].getAttribute('class').match(/\d+/)[0]) : parseInt($gt('IMG', troopsTR[i])[0].getAttribute('class').match(/\d+/)[0]);
+                tc = oasisSearch ? parseInt($gt('span', troopsTR[i])[0].textContent) : toNumber(troopsTR[i].cells[1].innerHTML);
                 ti = [gti(tt, 1, tc), gti(tt, 2, tc), tc, gti(tt, 9, tc)];
                 ts = [ts[0] + ti[0], ts[1] + ti[1], ts[2] + ti[2], ts[3] + ti[3]];
                 ITTb.appendChild($em('TR', [$c(trImg('unit u' + tt)), $c(humanRF(ti[0])), $c(humanRF(ti[1])), $c(humanRF(ti[2])), $c(humanRF(ti[3]))]));
@@ -5712,7 +5712,7 @@
                             chkOasisFL[vid] = getTroopsInOasis(newDiv);
                             addToolTip(chkOasisFL[vid], tBody.rows[i].cells[2]);
                             var animX = $xf('.//div[i[contains(@class, "unit u")]]', 'l', newDiv);
-                            if (animX.snapshotLength > 0) {
+                            if (animX.length > 0) {
                                 var td = parseInt(chkOasisFL[vid].rows[0].cells[1].innerText.replace(",", "")) + parseInt(chkOasisFL[vid].rows[0].cells[2].innerText.replace(",", ""));
                                 var heroxp = parseInt(chkOasisFL[vid].rows[0].cells[4].innerText.replace(",", ""));
                                 var res = heroxp * 160; //160 resources per 1 animal crop consumption, or per 1 hero xp point
@@ -5721,9 +5721,9 @@
                                 tBody.rows[i].cells[4].appendChild($em('div', [$em('div', [ratio], [['class', 'body']])], [['id', 'reportWrapper'], ['style', 'font-weight:bold;']]));
                                 tBody.rows[i].cells[2].appendChild($em('div'));
                                 var animL = [0, 0, 0, 0, 0, 0, 0, 1, 1, 1];
-                                for (var z = 0; z < animX.snapshotLength; z++) {
-                                    tt = parseInt($gt('i', animX.snapshotItem(z))[0].getAttribute('class').match(/\d+/)[0]);
-                                    tc = $gt('span', animX.snapshotItem(z))[0].textContent;
+                                for (var z = 0; z < animX.length; z++) {
+                                    tt = parseInt($gt('i', animX[z])[0].getAttribute('class').match(/\d+/)[0]);
+                                    tc = $gt('span', animX[z])[0].textContent;
                                     if (animL[tt - 31] > 0)
                                         tBody.rows[i].cells[2].appendChild($em('span', [tc + 'x', trImg('unit u' + tt)]));
                                 }
@@ -6082,9 +6082,9 @@
             kirilloid = kirilloid.replace(/[;#]$/, '');
 
             var adCoords = $xf('.//a[contains(@href, "karte.php")]', 'l', report);
-            if (adCoords.snapshotLength > 1) {
-                var atCoord = getVid(adCoords.snapshotItem(0).getAttribute('href'));
-                var dfCoord = getVid(adCoords.snapshotItem(1).getAttribute('href'));
+            if (adCoords.length > 1) {
+                var atCoord = getVid(adCoords[0].getAttribute('href'));
+                var dfCoord = getVid(adCoords[1].getAttribute('href'));
                 var distance = Math.round(calcDistance(atCoord, dfCoord));
                 var distRef = $ee('SPAN', '&lt;- ' + distance + ' -&gt;', [['style', 'white-space:nowrap;']]);
                 distRef.addEventListener("mouseover", function () {
@@ -6182,11 +6182,11 @@
 
         function rpDefaultAction() {
             var nc = $xf('.//input[@name="eventType"]', 'l', cont);
-            if (nc.snapshotLength < 3) return;
-            if (RB.Setup[27] > 0) if (typeof nc.snapshotItem(RB.Setup[27]).getAttribute('disabled') != "string") nc.snapshotItem(RB.Setup[27]).checked = true;
+            if (nc.length < 3) return;
+            if (RB.Setup[27] > 0) if (typeof nc[RB.Setup[27]].getAttribute('disabled') != "string") nc[RB.Setup[27]].checked = true;
             if (RB.dictFL[16] > 0) return;
-            for (var i = 0; i < nc.snapshotLength; i++) {
-                RB.dictionary[16 + i] = nc.snapshotItem(i).parentNode.textContent.trim();
+            for (var i = 0; i < nc.length; i++) {
+                RB.dictionary[16 + i] = nc[i].parentNode.textContent.trim();
             }
             saveCookie('Dict', 'dictionary');
             RB.dictFL[16] = 1;
@@ -6204,8 +6204,8 @@
 
         function restHeroTime() {
             var timers = $xf('.//div/span[contains(@class, "timer")]', 'l', cont);
-            for (var i = 0; i < timers.snapshotLength; i++) {
-                timers.snapshotItem(i).parentNode.insertBefore($em('SPAN', [' (', formatTime(absTime(toSeconds(timers.snapshotItem(i).textContent)), 4), ')']), timers.snapshotItem(i).nextSibling);
+            for (var i = 0; i < timers.length; i++) {
+                timers[i].parentNode.insertBefore($em('SPAN', [' (', formatTime(absTime(toSeconds(timers[i].textContent)), 4), ')']), timers[i].nextSibling);
             }
         }
 
@@ -6245,7 +6245,7 @@
                 }
 
                 for (var t = 1; t < RB.attackList.length; t++) {
-                    aDv.appendChild(vLinks.snapshotItem(RB.attackList[t]).cloneNode(true));
+                    aDv.appendChild(vLinks[RB.attackList[t]].cloneNode(true));
                     if (RB.attackList.length > t + 1) aDv.appendChild($t(', '));
                 }
                 aDv.appendChild($e('BR'));
@@ -6305,8 +6305,8 @@
                     var move = $xf('.//*[@class="attack"]', 'l', ad);
                     ad = null;
                     if (move) {
-                        for (var h = 0; h < move.snapshotLength; h++) {
-                            var att = $gt('a', move.snapshotItem(h).parentNode);
+                        for (var h = 0; h < move.length; h++) {
+                            var att = $gt('a', move[h].parentNode);
                             var pat = new RegExp('/profile/' + userID);
                             for (var i = 0; i < att.length; i++) {
                                 if (pat.test(att[i].href)) {
@@ -6399,8 +6399,8 @@
 
         function timeToBids() {
             var timers = $xf('.//span[contains(@class,"timer")]', 'l', cont);
-            for (var i = 0; i < timers.snapshotLength; i++) {
-                timers.snapshotItem(i).setAttribute('title', formatTime(absTime(toSeconds(timers.snapshotItem(i).innerHTML)), 2));
+            for (var i = 0; i < timers.length; i++) {
+                timers[i].setAttribute('title', formatTime(absTime(toSeconds(timers[i].innerHTML)), 2));
             }
         }
 
@@ -6495,12 +6495,12 @@
                     dorf = 1;
                     var slots = $xf('./a', 'l', mapInfo2);
                     //remove duplicate nodes (travian bug)
-                    for (var i = 1; i < slots.snapshotLength; i++) {
-                        if (slots.snapshotItem(i).href == slots.snapshotItem(i - 1).href) {
-                            slots.snapshotItem(i).parentNode.removeChild(slots.snapshotItem(i));
+                    for (var i = 1; i < slots.length; i++) {
+                        if (slots[i].href == slots[i - 1].href) {
+                            slots[i].parentNode.removeChild(slots[i]);
                         }
                     }
-                    if ($gt('DIV', slots.snapshotItem(1)).length > 0) {
+                    if ($gt('DIV', slots[1]).length > 0) {
                         levels = $xf('.//DIV', 'l', mapInfo2);
                     }
                 } else {
@@ -6508,36 +6508,36 @@
                     var lRef = 0;
                     levels = $xf('.//div[contains(@class,"labelLayer")]', 'l', mapInfo);
                     var imageElements = $xf('.//img[contains(@class,"building") or contains(@class,"Bottom")]', 'l', mapInfo);
-                    countArray = imageElements.snapshotLength;
+                    countArray = imageElements.length;
                 }
 
                 if (!mapInfo && !mapInfo2) return;
                 for (var i = 0; i < countArray; i++) {
                     if (dorf == 1) {
-                        BuildingLevel = /level(\d+)/.exec(levels.snapshotItem(i).parentNode.className);
+                        BuildingLevel = /level(\d+)/.exec(levels[i].parentNode.className);
                         if (!BuildingLevel) continue;
                         BuildingLevel = parseInt(BuildingLevel[1]);
                         if (i == 0) { var typeOfVillage = /resourceField(\d+)/.exec(mapInfo2.className); }
                         gid = fieldsOfVillage['f' + typeOfVillage[1]][i] + 1;
                         aid = i + mapOffset;
-                        smallDIV = levels.snapshotItem(i);
-                        if (/underConstruction/.test(levels.snapshotItem(i).parentNode.getAttribute('class'))) underConstruction = true; else underConstruction = false;
+                        smallDIV = levels[i];
+                        if (/underConstruction/.test(levels[i].parentNode.getAttribute('class'))) underConstruction = true; else underConstruction = false;
                     }
 
                     if (dorf == 2) {
-                        if (/iso|g16e/.test(imageElements.snapshotItem(i).getAttribute('class'))) continue;
-                        BuildingLevel = imageElements.snapshotItem(i).previousElementSibling.textContent;
+                        if (/iso|g16e/.test(imageElements[i].getAttribute('class'))) continue;
+                        BuildingLevel = imageElements[i].previousElementSibling.textContent;
                         if (!BuildingLevel) continue;
                         BuildingLevel = parseInt(BuildingLevel);
 
-                        gid = parseInt(/(\d+)/.exec(imageElements.snapshotItem(i).getAttribute('class'))[1]);
-                        if (/g40/.test(imageElements.snapshotItem(i).getAttribute('class'))) { //if WW building
+                        gid = parseInt(/(\d+)/.exec(imageElements[i].getAttribute('class'))[1]);
+                        if (/g40/.test(imageElements[i].getAttribute('class'))) { //if WW building
                             aid = 35;
                         } else {
-                            aid = parseInt(/(\d+)/.exec(imageElements.snapshotItem(i).previousElementSibling.getAttribute('class'))[1]);
+                            aid = parseInt(/(\d+)/.exec(imageElements[i].previousElementSibling.getAttribute('class'))[1]);
                         }
-                        smallDIV = levels.snapshotItem(lRef++);
-                        if (/underConstruction/.test(imageElements.snapshotItem(i).previousElementSibling.getAttribute('class'))) underConstruction = true; else underConstruction = false;
+                        smallDIV = levels[lRef++];
+                        if (/underConstruction/.test(imageElements[i].previousElementSibling.getAttribute('class'))) underConstruction = true; else underConstruction = false;
                     }
 
                     if (underConstruction) {
@@ -6697,22 +6697,22 @@
             var semafor3 = $e('div');
             for (var t = 1; t < 6; t++) {
                 var blue = $xf('.//img[contains(@class,"online' + t + '")]', 'l', members);
-                if (blue.snapshotLength > 0)
-                    semafor1.appendChild($em('SPAN', [blue.snapshotItem(0).cloneNode(true), ' = ', blue.snapshotLength, '; ']));
+                if (blue.length > 0)
+                    semafor1.appendChild($em('SPAN', [blue[0].cloneNode(true), ' = ', blue.length, '; ']));
             }
             for (var t = 1; t < ((RB.Setup[47] == 1) ? 10 : 4); t++) {
                 if (t == 4 || t == 5) continue;
                 var tribe = $xf('.//i[contains(@class,"tribe' + t + '_medium")]', 'l', members);
-                if (tribe.snapshotLength > 0) {
+                if (tribe.length > 0) {
                     semafor2.appendChild($e('i', [['class', 'tribeIcon tribe' + t + '_medium']]));
-                    semafor2.appendChild($ee('SPAN', ' = ' + tribe.snapshotLength + '; '));
+                    semafor2.appendChild($ee('SPAN', ' = ' + tribe.length + '; '));
                 }
             }
             for (var t = 1; t < 3; t++) {
                 var spec = $xf('.//div[contains(@class,"type' + t + '")]', 'l', members);
-                if (spec.snapshotLength > 0) {
+                if (spec.length > 0) {
                     semafor3.appendChild($e('DIV', [['class', 'memberSpecialization type' + t], ['style', 'float:none;display:inline-block;']]));
-                    semafor3.appendChild($ee('SPAN', ' = ' + spec.snapshotLength + '; '));
+                    semafor3.appendChild($ee('SPAN', ' = ' + spec.length + '; '));
                 }
             }
             semafor.appendChild(semafor1);
@@ -6770,18 +6770,18 @@
             }
             var tshift = 0;
             var upt = $xf('.//table[@class="under_progress"]', 'l', cont);
-            if (upt.snapshotLength > 0) {
-                upt = upt.snapshotItem(0);
+            if (upt.length > 0) {
+                upt = upt[0];
                 var ts = $xf('.//td[@class="dur"]/span', 'l', upt);
-                tshift = toSeconds(ts.snapshotItem(ts.snapshotLength - 1).innerHTML);
+                tshift = toSeconds(ts[ts.length - 1].innerHTML);
                 var allUC = new Object();
                 var mFL = false;
                 var ts = $xf('.//td[@class="desc"]/img', 'l', upt);
-                for (var i = 0; i < ts.snapshotLength; i++) {
-                    var uclass = ts.snapshotItem(i).getAttribute('class');
+                for (var i = 0; i < ts.length; i++) {
+                    var uclass = ts[i].getAttribute('class');
                     if (typeof (allUC[uclass]) == 'undefined') allUC[uclass] = ['', 0, 0];
-                    allUC[uclass][0] = ts.snapshotItem(i).getAttribute('alt');
-                    allUC[uclass][1] += parseInt(ts.snapshotItem(i).parentNode.innerHTML.onlyText().match(/\d+/)[0]);
+                    allUC[uclass][0] = ts[i].getAttribute('alt');
+                    allUC[uclass][1] += parseInt(ts[i].parentNode.innerHTML.onlyText().match(/\d+/)[0]);
                     if (allUC[uclass][2] > 0) mFL = true; else allUC[uclass][2]++;
                 }
                 if (mFL) {
@@ -6925,8 +6925,8 @@
         function goldClubInfo() {
             function checkClass(clName, chkbox) {
                 var ac = $xf('.//tr[(.//i[contains(@class,"' + clName + '")]) and not(contains(@class, "disabled"))]', 'l', chkbox.parentNode.parentNode.parentNode.parentNode.tBodies[0]);
-                for (var t = 0; t < ac.snapshotLength; t++) {
-                    var inp = $gt('INPUT', ac.snapshotItem(t))[0];
+                for (var t = 0; t < ac.length; t++) {
+                    var inp = $gt('INPUT', ac[t])[0];
                     if (inp.checked != chkbox.checked) inp.click();
                 }
             }
@@ -7054,11 +7054,11 @@
                     }
 
                     var allBer = $xf('.//a[contains(@href, "report?id=")]', 'l', fTable);
-                    for (var t = 0; t < allBer.snapshotLength; t++) {
-                        var tImg = $gt('i', allBer.snapshotItem(t));
+                    for (var t = 0; t < allBer.length; t++) {
+                        var tImg = $gt('i', allBer[t]);
                         if (tImg.length > 0) {
-                            allBer.snapshotItem(t).addEventListener('click', function (x) { return function () { selectMessage(x); } }([allBer.snapshotItem(t).getAttribute('href'), offsetPosition(tImg[0])]), true);
-                            allBer.snapshotItem(t).removeAttribute('href');
+                            allBer[t].addEventListener('click', function (x) { return function () { selectMessage(x); } }([allBer[t].getAttribute('href'), offsetPosition(tImg[0])]), true);
+                            allBer[t].removeAttribute('href');
                         }
                     }
                 }
@@ -7141,9 +7141,9 @@
             }
 
             var allD = $xf('.//img[contains(@class,"unit ")]', 'l', cont);
-            for (var i = 0; i < allD.snapshotLength; i++) {
-                var uname = allD.snapshotItem(i).getAttribute('class').match(/\d+/)[0];
-                var rpn = allD.snapshotItem(i);
+            for (var i = 0; i < allD.length; i++) {
+                var uname = allD[i].getAttribute('class').match(/\d+/)[0];
+                var rpn = allD[i];
                 do {
                     rpn = rpn.parentNode;
                     var spn = $gt('SPAN', rpn);
@@ -7497,15 +7497,15 @@
 
         function oasisKirilloid(vf) {
             var troopsTR = $xf('.//tr[td/img[contains(@class, "unit u")]]', 'l', vf);
-            if (troopsTR.snapshotLength < 1) return false;
+            if (troopsTR.length < 1) return false;
 
             var kirillRace = ['', 'r1', 'r2', '', 'r3', 'r4', 'r5'];
             var kirillS = kirillRace[RB.Setup[2]] + 'RuUb#d:p500r3' + ((RB.Setup[46] == 1) ? 'm9' : '') + '#r3u';
 
             var anim = new Array(10);
-            for (var i = 0; i < troopsTR.snapshotLength; i++)
-                anim[parseInt($gt('IMG', troopsTR.snapshotItem(i))[0].getAttribute('class').match(/\d+/)[0]) - 31] =
-                    toNumber(troopsTR.snapshotItem(i).cells[1].innerHTML);
+            for (var i = 0; i < troopsTR.length; i++)
+                anim[parseInt($gt('IMG', troopsTR[i])[0].getAttribute('class').match(/\d+/)[0]) - 31] =
+                    toNumber(troopsTR[i].cells[1].innerHTML);
 
             for (i = 0; i < 10; i++) kirillS += anim[i] ? anim[i] + ',' : ',';
             kirillS = '#a:' + kirillS.replace(/,*$/, 'U');
