@@ -3154,7 +3154,7 @@ if ($templateName == 'tpl/layout.tpl'): ?>
                             <tr>
                                 <td colspan="2">
                                     <a style="color: brown" onclick="return confirmAction();" href="?action=editPlayer&section=changeTribeToGuals&uid=<?= $params['playerId']; ?>">&raquo;
-                                        Change Tribe To Guals</a>
+                                        Change Tribe To Gauls</a>
                                 </td>
                             </tr>
                         <?php endif;?>

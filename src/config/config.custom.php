@@ -29,6 +29,8 @@ $config->custom->makeAuctionsCheaperInSell = true;
 $config->custom->needAllianceWWPlan = false;
 $config->fakeUsersCount = mt_rand(40, 100);
 $config->game->deletionTime = 3600 * 1;
+// Max gold club limit 3 -> 10
+$config->masterBuilder->maxTasksInNoneWonder = 10;
 
 {
     if ($config->game->speed >= 5000) {

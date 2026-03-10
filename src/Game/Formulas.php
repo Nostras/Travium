@@ -3320,7 +3320,12 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
 
     public static function merchantSpeed($race)
     {
-        $speeds = [1 => 16, 12, 24, 5 => 16, 6 => 16, 7 => 20];
+        // 1 = Romans
+        // 2 = Teutons
+        // 3 = Gauls
+        // 6 = Egyptians
+        // 7 = Huns
+        $speeds = [1 => 16, 2 => 12, 3 => 24, 6 => 16, 7 => 20];
         $speed = $speeds[$race];
         return $speed * getGameSpeed();
     }
