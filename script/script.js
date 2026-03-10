@@ -5806,9 +5806,9 @@
                                             printResult(pRules[t][1], mapData.tiles[i].position.x, mapData.tiles[i].position.y);
                                     }
                                 }
-                                // 4-4-4-6: deserted tile with no special field marker
-                                if (c4446.checked && /{k.dt}/.test(mapData.tiles[i].title) && !/{k.f}/.test(mapData.tiles[i].title)) {
-                                    printResult('4446:', mapData.tiles[i].position.x, mapData.tiles[i].position.y);
+                                // 4-4-4-6: {k.f3} field type, uninhabited (no did)
+                                if (c4446.checked && /{k.f3}/.test(mapData.tiles[i].title) && !mapData.tiles[i].did) {
+                                    printResult('4446:', parseInt(mapData.tiles[i].position.x), parseInt(mapData.tiles[i].position.y));
                                 }
                                 if (/{k.bt}|{k.fo}/.test(mapData.tiles[i].title)) {
                                     var otxt = mapData.tiles[i].text || '';
@@ -5817,7 +5817,7 @@
                                         var or1 = /{a.r1}/.test(otxt) ? parseInt(otxt.match(/{a.r1}\s+(\d+)%/)[1]) : 0;
                                         var or2 = /{a.r2}/.test(otxt) ? parseInt(otxt.match(/{a.r2}\s+(\d+)%/)[1]) : 0;
                                         var or3 = /{a.r3}/.test(otxt) ? parseInt(otxt.match(/{a.r3}\s+(\d+)%/)[1]) : 0;
-                                        oasis[oasis.length] = [mapData.tiles[i].position.x, mapData.tiles[i].position.y, or4, or1, or2, or3];
+                                        oasis[oasis.length] = [parseInt(mapData.tiles[i].position.x), parseInt(mapData.tiles[i].position.y), or4, or1, or2, or3];
                                     }
                                 }
                             }
