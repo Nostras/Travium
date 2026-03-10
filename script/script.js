@@ -481,15 +481,9 @@
         function newOption(node, text, value) { node.appendChild($ee('OPTION', text, [['value', value]])); }
 
         // Safer ID selector
-        // IDs that are legitimately absent on many pages - suppress warnings for these
-        var $g_optional = new Set(['villageBoxes','llist','villageContent','resourceFieldContainer',
-            'villageNameField','villageName','troops','movements','PlayerProfileEditor',
-            'tileDetails','ttyyimm','mapContainer','tileInfo','tileName']);
         function $g(id) {
-            if (!id) return null; // guard against $g(undefined)
-            const el = document.getElementById(id);
-            if (!el && !$g_optional.has(id)) { console.warn(`[TTQ Debug] Element ID not found: ${id}`); }
-            return el;
+            if (!id) return null;
+            return document.getElementById(id);
         }
 
         // Safer Class selector
