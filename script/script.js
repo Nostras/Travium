@@ -1388,6 +1388,7 @@
 
         // market send page :)
         function marketSend() {
+            console.log("[TRBP market] marketSend called, send_res:", !!document.querySelector("table.send_res"), "sendResourcesForm:", !!document.querySelector(".sendResourcesForm"));
             function setMerchantsCell(tM, tR, colM) {
                 totalResources.textContent = tR;
                 $at(totalResources, [['style', 'justify-self:start; color:' + colM + ';']]);
@@ -5438,7 +5439,8 @@
             var init = true;
             if (gid == 'gid17') {
                 // If send form is already in DOM (direct URL like ?z=X&t=5), call immediately
-                if (cont && cont.querySelector('.available')) {
+                // Standard T4: .available; this server: table.send_res or #send_select
+                if (cont && (cont.querySelector('.available') || cont.querySelector('table.send_res,#send_select'))) {
                     init = false;
                     marketSend(); marketSumm(); marketOffer();
                 }
