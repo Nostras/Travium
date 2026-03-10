@@ -5720,15 +5720,37 @@
                             }
                         }
                     } else {
+                        // For 4446+oasis tiles, require all three mixed oases nearby
+                        if (aCCs[i][0] === '4446:') {
+                            var hasWoodCrop = false, hasClayCrop = false, hasIronCrop = false;
+                            for (var t = 0; t < oasis.length; t++) {
+                                if (Math.abs(aCCs[i][1] - oasis[t][0]) < 4 && Math.abs(aCCs[i][2] - oasis[t][1]) < 4) {
+                                    if (oasis[t][3] > 0 && oasis[t][2] > 0) hasWoodCrop = true;  // wood+crop
+                                    if (oasis[t][4] > 0 && oasis[t][2] > 0) hasClayCrop = true;  // clay+crop
+                                    if (oasis[t][5] > 0 && oasis[t][2] > 0) hasIronCrop = true;  // iron+crop
+                                }
+                            }
+                            if (!hasWoodCrop || !hasClayCrop || !hasIronCrop) continue;
+                        }
                         var oasisCC = 0;
                         var oasisCount = 0;
+                        var oasisDiv = $em('div', []);
                         for (var t = 0; t < oasis.length; t++) {
                             if (Math.abs(aCCs[i][1] - oasis[t][0]) < 4 && Math.abs(aCCs[i][2] - oasis[t][1]) < 4) {
                                 oasisCC += parseInt(oasis[t][2]);
+                                if (aCCs[i][0] === '4446:') {
+                                    // Show per-resource icons for mixed oasis bonus
+                                    if (oasis[t][3] > 0) oasisDiv.appendChild($em('span', [$e('i', [['class', 'r1']]), '+' + oasis[t][3] + '%']));
+                                    if (oasis[t][4] > 0) oasisDiv.appendChild($em('span', [$e('i', [['class', 'r2']]), '+' + oasis[t][4] + '%']));
+                                    if (oasis[t][5] > 0) oasisDiv.appendChild($em('span', [$e('i', [['class', 'r3']]), '+' + oasis[t][5] + '%']));
+                                    oasisDiv.appendChild($em('span', [$e('i', [['class', 'r4']]), '+' + oasis[t][2] + '%']));
+                                }
                                 if (++oasisCount > 2) break;
                             }
                         }
-                        tBody.appendChild($em('TR', [$c(aCCs[i][0]), $c(oasisCC > 0 ? $em('div', [$e('i', [['class', 'r4']]), '+' + oasisCC + '%']) : ''),
+                        var oasisCell = aCCs[i][0] === '4446:' ? oasisDiv
+                            : (oasisCC > 0 ? $em('div', [$e('i', [['class', 'r4']]), '+' + oasisCC + '%']) : '');
+                        tBody.appendChild($em('TR', [$c(aCCs[i][0]), $c(oasisCell),
                         $c($a(aCCs[i][1] + '|' + aCCs[i][2], [['href', 'karte.php?' + 'x=' + aCCs[i][1] + '&y=' + aCCs[i][2]]])),
                         $c(calcDistance(xy2id(aCCs[i][1], aCCs[i][2]), cell_id).toFixed(1))]));
                     }
@@ -5784,9 +5806,18 @@
                                             printResult(pRules[t][1], mapData.tiles[i].position.x, mapData.tiles[i].position.y);
                                     }
                                 }
+                                // 4-4-4-6: deserted tile with no special field marker
+                                if (c4446.checked && /{k.dt}/.test(mapData.tiles[i].title) && !/{k.f}/.test(mapData.tiles[i].title)) {
+                                    printResult('4446:', mapData.tiles[i].position.x, mapData.tiles[i].position.y);
+                                }
                                 if (/{k.bt}|{k.fo}/.test(mapData.tiles[i].title)) {
-                                    if (/{a.r4}/.test(mapData.tiles[i].text)) {
-                                        oasis[oasis.length] = [mapData.tiles[i].position.x, mapData.tiles[i].position.y, mapData.tiles[i].text.match(/{a.r4}\s+(\d+)%/)[1]];
+                                    var otxt = mapData.tiles[i].text || '';
+                                    var or4 = /{a.r4}/.test(otxt) ? parseInt(otxt.match(/{a.r4}\s+(\d+)%/)[1]) : 0;
+                                    if (or4 > 0) {
+                                        var or1 = /{a.r1}/.test(otxt) ? parseInt(otxt.match(/{a.r1}\s+(\d+)%/)[1]) : 0;
+                                        var or2 = /{a.r2}/.test(otxt) ? parseInt(otxt.match(/{a.r2}\s+(\d+)%/)[1]) : 0;
+                                        var or3 = /{a.r3}/.test(otxt) ? parseInt(otxt.match(/{a.r3}\s+(\d+)%/)[1]) : 0;
+                                        oasis[oasis.length] = [mapData.tiles[i].position.x, mapData.tiles[i].position.y, or4, or1, or2, or3];
                                     }
                                 }
                             }
@@ -5828,8 +5859,9 @@
             var c15 = inpsC('RBc15', true);
             var c9 = inpsC('RBc9', true);
             var c7 = inpsC('RBc7', false);
+            var c4446 = inpsC('RBc4446', false);
             var anDiv = $em('SPAN', [' ', trImg('unit u31')]);
-            cont.appendChild($em('DIV', [label(xCoordText, oX), label(yCoordText, oY), label('zoom:', oZ), label('18:', c18), label('15:', c15), label('9:', c9), label('7:', c7), cfText, ' | ', cfText2, anDiv], [['class', 'contents'], ['style', 'white-space:nowrap;margin:10px 20px;']]));
+            cont.appendChild($em('DIV', [label(xCoordText, oX), label(yCoordText, oY), label('zoom:', oZ), label('18:', c18), label('15:', c15), label('9:', c9), label('7:', c7), label('4446+3oasis:', c4446), cfText, ' | ', cfText2, anDiv], [['class', 'contents'], ['style', 'white-space:nowrap;margin:10px 20px;']]));
         }
 
         function npcForTroops() {
