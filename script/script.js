@@ -4420,22 +4420,28 @@
                 var newCookie = [0];
                 var t = 1;
                 var troopsEl = $g("troops");
-                if (!troopsEl) return; // no troops table on this page
-                var troops = $xf('.//tr[.//img]', 'r', troopsEl);
-                if (!troops) return;
-                var fl = RB.village_dorf12[0] == troops.snapshotLength ? false : true;
-                for (var i = 0; i < troops.snapshotLength; i++) {
-                    if (troops.snapshotItem(i).cells.length < 3) continue;
+                if (!troopsEl) { console.log("[TRBP troops] no #troops element"); return; }
+                var troops = $xf('.//tr[.//img]', 'l', troopsEl);
+                if (!troops) { console.log("[TRBP troops] XPath returned null"); return; }
+                console.log("[TRBP troops] count="+troops.length+" village_aid="+village_aid+" villages_id="+JSON.stringify(villages_id)+" villages_count="+villages_count);
+                var fl = RB.village_dorf12[0] == troops.length ? false : true;
+                for (var i = 0; i < troops.length; i++) {
+                    if (troops[i].cells.length < 3) { console.log("[TRBP troops] row "+i+" skipped, cells="+troops[i].cells.length); continue; }
                     newCookie[0]++;
-                    newCookie[t++] = troops.snapshotItem(i).getElementsByTagName('IMG')[0].getAttribute('class').match(/ u(.+)/)[1];
-                    newCookie[t++] = troops.snapshotItem(i).cells[1].innerHTML;
+                    var imgClass = troops[i].getElementsByTagName('IMG')[0].getAttribute('class');
+                    var unitMatch = imgClass.match(/ u(.+)/);
+                    if (!unitMatch) { console.log("[TRBP troops] row "+i+" img class no match: "+imgClass); continue; }
+                    newCookie[t++] = unitMatch[1];
+                    newCookie[t++] = troops[i].cells[1].innerHTML;
                     if (!fl) {
                         if (RB.village_dorf12[t - 2] == undefined) fl = true;
                         if (RB.village_dorf12[t - 2] != newCookie[t - 2]) fl = true;
                         if (RB.village_dorf12[t - 1] != newCookie[t - 1]) fl = true;
                     }
                 }
+                console.log("[TRBP troops] saving newCookie="+JSON.stringify(newCookie)+" fl="+fl);
                 if (fl) saveVCookie('Dorf12', newCookie, 1);
+                console.log("[TRBP troops] Dorf12 stored="+RB_getValue('TRBPrb_Dorf12','(empty)'));
             }
             function detectTribe() {
                 // Use the game's internal variable if available
@@ -4642,14 +4648,14 @@
         }
 
         function addSpeedAndRTSend(iBl, href) {
-            var mLinks = $xf('.//a[contains(@href, "' + (typeof href == 'undefined' ? "karte.php?" : "position_details.php?") + '")]', 'r', (typeof iBl == 'undefined' ? cont : iBl));
+            var mLinks = $xf('.//a[contains(@href, "' + (typeof href == 'undefined' ? "karte.php?" : "position_details.php?") + '")]', 'l', (typeof iBl == 'undefined' ? cont : iBl));
             if (!mLinks) return;
-            for (var j = 0; j < mLinks.snapshotLength; j++) {
-                var existT = $gc(allIDs[29], mLinks.snapshotItem(j));
-                if (existT.length > 0) continue; else mLinks.snapshotItem(j).appendChild($e('SPAN', [['class', allIDs[29]]]));
-                linkHint(mLinks.snapshotItem(j));
-                distanceTooltip(mLinks.snapshotItem(j), 1);
-                sendResTropAdd(mLinks.snapshotItem(j), 1);
+            for (var j = 0; j < mLinks.length; j++) {
+                var existT = $gc(allIDs[29], mLinks[j]);
+                if (existT.length > 0) continue; else mLinks[j].appendChild($e('SPAN', [['class', allIDs[29]]]));
+                linkHint(mLinks[j]);
+                distanceTooltip(mLinks[j], 1);
+                sendResTropAdd(mLinks[j], 1);
             }
             if (href) addRefIGM(iBl);
         }
@@ -4940,8 +4946,8 @@
             var idBEl = $g(idB);
             if (!idBEl) return;
             var mLinks = $xf('.//a[contains(@href, "/profile/") or contains(@href, "spieler.php")]', 'l', idBEl);
-            if (mLinks) for (var j = 0; j < mLinks.snapshotLength; j++) {
-                var al = mLinks.snapshotItem(j);
+            if (mLinks) for (var j = 0; j < mLinks.length; j++) {
+                var al = mLinks[j];
                 var uid = al.getAttribute('href').match(/profile\/(\d+)/) || al.getAttribute('href').match(/uid=(\d+)/);
                 if (uid) uid = uid[1]; else continue;
                 if (uid != userID && uid != 1) {
@@ -4951,9 +4957,9 @@
                 }
             }
             if (RB.Setup[19] > 0) {
-                var mLinks = $xf('.//a[contains(@href, "alliance/")]', 'r', idBEl);
-                if (mLinks) for (var j = 0; j < mLinks.snapshotLength; j++) {
-                    var al = mLinks.snapshotItem(j);
+                var mLinks = $xf('.//a[contains(@href, "alliance/")]', 'l', idBEl);
+                if (mLinks) for (var j = 0; j < mLinks.length; j++) {
+                    var al = mLinks[j];
                     var uid = al.getAttribute('href').match(/alliance\/(\d+)/);
                     if (uid) uid = uid[1]; else continue;
                     if (al.getAttribute('class')) if (al.getAttribute('class').indexOf("tabItem") > -1) continue;
@@ -4980,16 +4986,16 @@
             var llinks = $g('llist');
             if (!llinks) return;
             if (RB.Setup[15] == 1) {
-                var mLinks = $xf('tbody//a[contains(@href, "karte.php?")]', 'r', llinks);
-                for (var j = 0; j < mLinks.snapshotLength; j++) {
-                    distanceTooltip(mLinks.snapshotItem(j), 1);
-                    sendResTropAdd(mLinks.snapshotItem(j), 1);
+                var mLinks = $xf('tbody//a[contains(@href, "karte.php?")]', 'l', llinks);
+                for (var j = 0; j < mLinks.length; j++) {
+                    distanceTooltip(mLinks[j], 1);
+                    sendResTropAdd(mLinks[j], 1);
                 }
             }
             if (RB.Setup[15] == 1) {
-                var mLinks = $xf('tbody//a[contains(@href, "profile")]', 'r', llinks);
-                for (var j = 0; j < mLinks.snapshotLength; j++) {
-                    var al = mLinks.snapshotItem(j);
+                var mLinks = $xf('tbody//a[contains(@href, "profile")]', 'l', llinks);
+                for (var j = 0; j < mLinks.length; j++) {
+                    var al = mLinks[j];
                     var uid = al.getAttribute('href').match(/profile\/(\d+)/)[1];
                     al.appendChild($ee('A', trImg(allIDs[36]), [['href', '/messages/write?to=' + uid]]));
                 }
@@ -5026,10 +5032,10 @@
             var newdidVH = [];
             for (i = 0; i < villages_id.length; i++)
                 newdidVH[linkVSwitch[i].match(/newdid=(\d+)/i)[1]] = villages_id[i];
-            var mLinks = $xf('.//a[contains(@href, "newdid=")]', 'r', cont);
-            for (var j = 0; j < mLinks.snapshotLength; j++) {
-                var mLID = mLinks.snapshotItem(j).getAttribute('href').match(/newdid=(\d+)/)[1];
-                linkHint(mLinks.snapshotItem(j), newdidVH[mLID]);
+            var mLinks = $xf('.//a[contains(@href, "newdid=")]', 'l', cont);
+            for (var j = 0; j < mLinks.length; j++) {
+                var mLID = mLinks[j].getAttribute('href').match(/newdid=(\d+)/)[1];
+                linkHint(mLinks[j], newdidVH[mLID]);
             }
         }
 
@@ -5264,6 +5270,7 @@
             var ITTb = $e('TBODY');
             var newITT = $ee('TABLE', ITTb, [['class', allIDs[7]]]);
             loadZVCookie('Dorf12', 'village_dorf12');
+            console.log("[TRBP hover] village_aid="+village_aid+" dorf12[0]="+RB.village_dorf12[0]+" raw="+RB_getValue('TRBPrb_Dorf12','(empty)'));
             var tt = 0;
             var tc = 0;
             var ti = [0, 0, 0, 0, 0];
