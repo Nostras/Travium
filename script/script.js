@@ -5723,39 +5723,71 @@
                             }
                         }
                     } else {
-                        // For 4446+oasis tiles, require all three mixed oases nearby
+                        // Skip 15c entries in normal mode (only used for pairing)
+                        if (!cPair.checked && aCCs[i][0] === 'Crop 15:') continue;
+                        // For 4446: require all three mixed oasis types
+                        if (aCCs[i][0] === '4446:' && !passes4446OasisCheck(aCCs[i][1], aCCs[i][2])) continue;
+                        // Build summed oasis bonus display
+                        var ob = nearbyOasisBonuses(aCCs[i][1], aCCs[i][2]);
+                        var oasisCell;
                         if (aCCs[i][0] === '4446:') {
-                            var hasWoodCrop = false, hasClayCrop = false, hasIronCrop = false;
-                            for (var t = 0; t < oasis.length; t++) {
-                                if (Math.abs(aCCs[i][1] - oasis[t][0]) < 4 && Math.abs(aCCs[i][2] - oasis[t][1]) < 4) {
-                                    if (oasis[t][3] > 0 && oasis[t][2] > 0) hasWoodCrop = true;  // wood+crop
-                                    if (oasis[t][4] > 0 && oasis[t][2] > 0) hasClayCrop = true;  // clay+crop
-                                    if (oasis[t][5] > 0 && oasis[t][2] > 0) hasIronCrop = true;  // iron+crop
-                                }
-                            }
-                            if (!hasWoodCrop || !hasClayCrop || !hasIronCrop) continue;
+                            var od = $em('div', []);
+                            if (ob.r1 > 0) od.appendChild($em('span', [$e('i', [['class', 'r1']]), '+' + ob.r1 + '%']));
+                            if (ob.r2 > 0) od.appendChild($em('span', [$e('i', [['class', 'r2']]), '+' + ob.r2 + '%']));
+                            if (ob.r3 > 0) od.appendChild($em('span', [$e('i', [['class', 'r3']]), '+' + ob.r3 + '%']));
+                            if (ob.r4 > 0) od.appendChild($em('span', [$e('i', [['class', 'r4']]), '+' + ob.r4 + '%']));
+                            oasisCell = od;
+                        } else {
+                            oasisCell = ob.r4 > 0 ? $em('div', [$e('i', [['class', 'r4']]), '+' + ob.r4 + '%']) : '';
                         }
-                        var oasisCC = 0;
-                        var oasisCount = 0;
-                        var oasisDiv = $em('div', []);
-                        for (var t = 0; t < oasis.length; t++) {
-                            if (Math.abs(aCCs[i][1] - oasis[t][0]) < 4 && Math.abs(aCCs[i][2] - oasis[t][1]) < 4) {
-                                oasisCC += parseInt(oasis[t][2]);
-                                if (aCCs[i][0] === '4446:') {
-                                    // Show per-resource icons for mixed oasis bonus
-                                    if (oasis[t][3] > 0) oasisDiv.appendChild($em('span', [$e('i', [['class', 'r1']]), '+' + oasis[t][3] + '%']));
-                                    if (oasis[t][4] > 0) oasisDiv.appendChild($em('span', [$e('i', [['class', 'r2']]), '+' + oasis[t][4] + '%']));
-                                    if (oasis[t][5] > 0) oasisDiv.appendChild($em('span', [$e('i', [['class', 'r3']]), '+' + oasis[t][5] + '%']));
-                                    oasisDiv.appendChild($em('span', [$e('i', [['class', 'r4']]), '+' + oasis[t][2] + '%']));
-                                }
-                                if (++oasisCount > 2) break;
-                            }
-                        }
-                        var oasisCell = aCCs[i][0] === '4446:' ? oasisDiv
-                            : (oasisCC > 0 ? $em('div', [$e('i', [['class', 'r4']]), '+' + oasisCC + '%']) : '');
                         tBody.appendChild($em('TR', [$c(aCCs[i][0]), $c(oasisCell),
-                        $c($a(aCCs[i][1] + '|' + aCCs[i][2], [['href', 'karte.php?' + 'x=' + aCCs[i][1] + '&y=' + aCCs[i][2]]])),
+                        $c($a(aCCs[i][1] + '|' + aCCs[i][2], [['href', 'karte.php?x=' + aCCs[i][1] + '&y=' + aCCs[i][2]]])),
                         $c(calcDistance(xy2id(aCCs[i][1], aCCs[i][2]), cell_id).toFixed(1))]));
+                    }
+                }
+                // ── Pairing mode: match 4446+3oasis with 15c+150%grain ────────────────
+                if (cPair.checked) {
+                    var valid4446 = aCCs.filter(function(a) { return a[0] === '4446:' && passes4446OasisCheck(a[1], a[2]); });
+                    var valid15c  = aCCs.filter(function(a) {
+                        if (a[0] !== 'Crop 15:') return false;
+                        var ob = nearbyOasisBonuses(a[1], a[2]);
+                        return ob.r4 >= 150;
+                    });
+                    var pairs = [];
+                    for (var p4 = 0; p4 < valid4446.length; p4++) {
+                        for (var p15 = 0; p15 < valid15c.length; p15++) {
+                            var d = calcDistance(xy2id(valid4446[p4][1], valid4446[p4][2]), xy2id(valid15c[p15][1], valid15c[p15][2]));
+                            pairs.push([valid4446[p4], valid15c[p15], d]);
+                        }
+                    }
+                    pairs.sort(function(a, b) { return a[2] - b[2]; });
+                    if (pairs.length > 0) {
+                        var pairTable = $e('TABLE', [['class', allIDs[7]], ['style', 'width:100%;margin-top:8px;']]);
+                        pairTable.appendChild($ee('THEAD', $em('TR', [
+                            $c('4-4-4-6 (+3 oasis)', [['style', 'font-weight:bold;']]),
+                            $c('15c (+150% grain)', [['style', 'font-weight:bold;']]),
+                            $c('dist', [['style', 'font-weight:bold;']])
+                        ])));
+                        var pBody = $ee('TBODY');
+                        pairTable.appendChild(pBody);
+                        for (var p = 0; p < pairs.length; p++) {
+                            var a4 = pairs[p][0], a15 = pairs[p][1];
+                            var ob4 = nearbyOasisBonuses(a4[1], a4[2]);
+                            var ob15 = nearbyOasisBonuses(a15[1], a15[2]);
+                            var od4 = $em('span', []);
+                            if (ob4.r1 > 0) od4.appendChild($em('span', [$e('i', [['class', 'r1']]), '+' + ob4.r1 + '%']));
+                            if (ob4.r2 > 0) od4.appendChild($em('span', [$e('i', [['class', 'r2']]), '+' + ob4.r2 + '%']));
+                            if (ob4.r3 > 0) od4.appendChild($em('span', [$e('i', [['class', 'r3']]), '+' + ob4.r3 + '%']));
+                            if (ob4.r4 > 0) od4.appendChild($em('span', [$e('i', [['class', 'r4']]), '+' + ob4.r4 + '%']));
+                            pBody.appendChild($em('TR', [
+                                $c($em('span', [$a(a4[1]+'|'+a4[2], [['href', 'karte.php?x='+a4[1]+'&y='+a4[2]]]), ' ', od4])),
+                                $c($em('span', [$a(a15[1]+'|'+a15[2], [['href', 'karte.php?x='+a15[1]+'&y='+a15[2]]]), ' ', $em('span', [$e('i', [['class', 'r4']]), '+' + ob15.r4 + '%'])])),
+                                $c(pairs[p][2].toFixed(1))
+                            ]));
+                        }
+                        newT.appendChild(pairTable);
+                    } else {
+                        newT.appendChild($ee('P', 'No valid 4446+15c pairs found in this area.'));
                     }
                 }
                 cont.appendChild($ee('P', newT, [['id', allIDs[18]], ['style', 'margin:10px 15px 0px;padding-bottom:15px;']]));
@@ -5784,6 +5816,30 @@
                 if (/{a.v(\d)}/.test(o.text)) ar.v = o.text.match(/{a.v(\d)}/)[1];
                 return [pl, ar];
             }
+            // Returns summed oasis bonuses {r1,r2,r3,r4,count} for tiles within 3 of (x,y)
+            function nearbyOasisBonuses(x, y) {
+                var b = {r1:0, r2:0, r3:0, r4:0, count:0};
+                for (var t = 0; t < oasis.length; t++) {
+                    if (Math.abs(x - oasis[t][0]) < 4 && Math.abs(y - oasis[t][1]) < 4) {
+                        b.r1 += oasis[t][3]; b.r2 += oasis[t][4];
+                        b.r3 += oasis[t][5]; b.r4 += oasis[t][2];
+                        if (++b.count >= 3) break;
+                    }
+                }
+                return b;
+            }
+            // Returns true if (x,y) has all three mixed oasis types nearby
+            function passes4446OasisCheck(x, y) {
+                var wood = false, clay = false, iron = false;
+                for (var t = 0; t < oasis.length; t++) {
+                    if (Math.abs(x - oasis[t][0]) < 4 && Math.abs(y - oasis[t][1]) < 4) {
+                        if (oasis[t][3] > 0 && oasis[t][2] > 0) wood = true;
+                        if (oasis[t][4] > 0 && oasis[t][2] > 0) clay = true;
+                        if (oasis[t][5] > 0 && oasis[t][2] > 0) iron = true;
+                    }
+                }
+                return wood && clay && iron;
+            }
             function cropFindGetMap(a) {
                 param = 'cmd=mapPositionData&data%5Bx%5D=' + a.rX + '&data%5By%5D=' + a.rY + '&data%5BzoomLevel%5D=2';
                 ajaxRequest(fullName + 'ajax.php?cmd=mapPositionData', 'POST', param, function (ajaxResp) {
@@ -5810,8 +5866,12 @@
                                     }
                                 }
                                 // 4-4-4-6: {k.f3} field type, uninhabited (no did)
-                                if (c4446.checked && /{k.f3}/.test(mapData.tiles[i].title) && !mapData.tiles[i].did) {
+                                if ((c4446.checked || cPair.checked) && /{k.f3}/.test(mapData.tiles[i].title) && !mapData.tiles[i].did) {
                                     printResult('4446:', parseInt(mapData.tiles[i].position.x), parseInt(mapData.tiles[i].position.y));
+                                }
+                                // 15c for pairing mode
+                                if (cPair.checked && /{k.f6}/.test(mapData.tiles[i].title) && !mapData.tiles[i].did) {
+                                    printResult('Crop 15:', parseInt(mapData.tiles[i].position.x), parseInt(mapData.tiles[i].position.y));
                                 }
                                 if (/{k.bt}|{k.fo}/.test(mapData.tiles[i].title)) {
                                     var otxt = mapData.tiles[i].text || '';
@@ -5863,8 +5923,9 @@
             var c9 = inpsC('RBc9', true);
             var c7 = inpsC('RBc7', false);
             var c4446 = inpsC('RBc4446', false);
+            var cPair = inpsC('RBcPair', false);
             var anDiv = $em('SPAN', [' ', trImg('unit u31')]);
-            cont.appendChild($em('DIV', [label(xCoordText, oX), label(yCoordText, oY), label('zoom:', oZ), label('18:', c18), label('15:', c15), label('9:', c9), label('7:', c7), label('4446+3oasis:', c4446), cfText, ' | ', cfText2, anDiv], [['class', 'contents'], ['style', 'white-space:nowrap;margin:10px 20px;']]));
+            cont.appendChild($em('DIV', [label(xCoordText, oX), label(yCoordText, oY), label('zoom:', oZ), label('18:', c18), label('15:', c15), label('9:', c9), label('7:', c7), label('4446+oasis:', c4446), label('pair 15c+4446:', cPair), cfText, ' | ', cfText2, anDiv], [['class', 'contents'], ['style', 'white-space:nowrap;margin:10px 20px;']]));
         }
 
         function npcForTroops() {
