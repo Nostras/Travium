@@ -6182,9 +6182,33 @@
         }
 
         function rpDefaultAction() {
-            var nc = $xf('.//input[@name="eventType"]', 'l', cont);
-            if (nc.length < 3) return;
-            if (RB.Setup[27] > 0) if (typeof nc[RB.Setup[27]].getAttribute('disabled') != "string") nc[RB.Setup[27]].checked = true;
+            // This server uses name="c" with values 2=reinforce, 3=attack, 4=raid
+            // rather than name="eventType" used by standard Travian
+            var nc = $xf('.//input[@name="c"]', 'l', cont);
+            if (nc.length < 1) {
+                // Fallback to standard eventType
+                nc = $xf('.//input[@name="eventType"]', 'l', cont);
+                if (nc.length < 3) return;
+                if (RB.Setup[27] > 0) if (typeof nc[RB.Setup[27]].getAttribute('disabled') != "string") nc[RB.Setup[27]].checked = true;
+                if (RB.dictFL[16] > 0) return;
+                for (var i = 0; i < nc.length; i++) {
+                    RB.dictionary[16 + i] = nc[i].parentNode.textContent.trim();
+                }
+                saveCookie('Dict', 'dictionary');
+                RB.dictFL[16] = 1;
+                saveCookie('DictFL', 'dictFL');
+                return;
+            }
+            // Map Setup[27] index (0=reinforce,1=attack,2=raid) to c value (2,3,4)
+            var cValueMap = [2, 3, 4];
+            var targetVal = String(cValueMap[RB.Setup[27]] || 2);
+            for (var i = 0; i < nc.length; i++) {
+                if (nc[i].value === targetVal && typeof nc[i].getAttribute('disabled') != "string") {
+                    nc[i].checked = true;
+                    break;
+                }
+            }
+            // Save labels to dictionary if not yet cached
             if (RB.dictFL[16] > 0) return;
             for (var i = 0; i < nc.length; i++) {
                 RB.dictionary[16 + i] = nc[i].parentNode.textContent.trim();
