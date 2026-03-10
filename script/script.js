@@ -1528,8 +1528,10 @@
                 //if( $gn('x').length < 1 ) return;
                 //var xx = parseInt($gn('x')[0].value);
                 //var yy = parseInt($gn('y')[0].value);
-                var xx = parseInt($gt('input', $gc('coordinateX', basee)[0])[0].value);
-                var yy = parseInt($gt('input', $gc('coordinateY', basee)[0])[0].value);
+                var xxEl = ($gc('coordinateX', basee)[0] && $gt('input', $gc('coordinateX', basee)[0])[0]) || $gn('x')[0];
+                var yyEl = ($gc('coordinateY', basee)[0] && $gt('input', $gc('coordinateY', basee)[0])[0]) || $gn('y')[0];
+                var xx = parseInt(xxEl ? xxEl.value : NaN);
+                var yy = parseInt(yyEl ? yyEl.value : NaN);
                 if (isNaN(xx) || isNaN(yy)) return;
                 if (xy2id(xx, yy) == RB.wantsMem[4]) {
                     RB.wantsMem[3] = parseInt(RB.wantsMem[3]) - extNegat;
@@ -1592,8 +1594,10 @@
             }
             function mhRowLinkAMem() {
                 initRes = true; setTimeout(function () { getResources(); progressbar_ReInit(); }, 500);
-                var xx = parseInt($gt('input', $gc('coordinateX', basee)[0])[0].value);
-                var yy = parseInt($gt('input', $gc('coordinateY', basee)[0])[0].value);
+                var xxEl2 = ($gc('coordinateX', basee)[0] && $gt('input', $gc('coordinateX', basee)[0])[0]) || $gn('x')[0];
+                var yyEl2 = ($gc('coordinateY', basee)[0] && $gt('input', $gc('coordinateY', basee)[0])[0]) || $gn('y')[0];
+                var xx = parseInt(xxEl2 ? xxEl2.value : NaN);
+                var yy = parseInt(yyEl2 ? yyEl2.value : NaN);
                 if (isNaN(xx) || isNaN(yy)) return;
                 if (xy2id(xx, yy) != RB.wantsMem[4]) return;
                 loadVCookie('vPPH', 'village_PPH', RB.wantsMem[4]);
@@ -1644,18 +1648,34 @@
                 mhRowUpdate();
             }
             function checkMerchants() {
-                var merInfo = $gc('summary')[0];
-                moC = $gc('denominator', merInfo)[1];
-                maxM = moC.textContent.onlyText();
-                mDiv = merInfo.firstElementChild.nextSibling;
-                mName = mDiv.textContent.split(":")[0];
-                if (mName != RB.dictionary[2]) {
+                // Support both T4 standard (class=summary/denominator) and legacy (merchantsAvailable span)
+                var merInfoEl = $gc('summary')[0];
+                if (merInfoEl && $gc('denominator', merInfoEl).length > 1) {
+                    moC = $gc('denominator', merInfoEl)[1];
+                    maxM = parseInt(moC.textContent.onlyText()) || 0;
+                    var mDiv = merInfoEl.firstElementChild.nextSibling;
+                    mName = mDiv ? mDiv.textContent.split(":")[0] : RB.dictionary[2];
+                    maxTr = toNumber($gc('denominator', merInfoEl)[0].textContent);
+                    maxC = parseInt(($gc('merchantCarryInfo')[0] || {textContent:'0'}).textContent.match(/(\d+)/)[1]);
+                } else {
+                    // Legacy market: "Merchants 1/1" in .merchantsAvailable parent,
+                    // capacity from #merchantCapacityValue
+                    var mavEl = document.querySelector('.merchantsAvailable');
+                    if (mavEl) {
+                        var parentText = mavEl.parentElement.textContent;
+                        var parts = parentText.match(/(\d+)\/(\d+)/);
+                        if (parts) { moC = mavEl; maxM = parseInt(parts[2]); }
+                        mName = parentText.replace(/[\d\/\s\u200e\u200f]+/g, '').trim() || RB.dictionary[2];
+                    }
+                    var capEl = document.querySelector('#merchantCapacityValue');
+                    maxC = capEl ? parseInt(capEl.textContent) : 750;
+                    maxTr = maxM * maxC;
+                }
+                if (mName && mName != RB.dictionary[2]) {
                     RB.dictionary[2] = mName;
                     saveCookie('Dict', 'dictionary');
                 }
-                maxTr = toNumber($gc('denominator', merInfo)[0].textContent);
-                maxC = parseInt($gc('merchantCarryInfo')[0].textContent.match(/(\d+)/)[1]);
-                if (maxC != RB.village_Var[0]) {
+                if (maxC && maxC != RB.village_Var[0]) {
                     RB.village_Var[0] = maxC;
                     saveVCookie('VV', RB.village_Var);
                 }
@@ -1663,10 +1683,15 @@
 
             //if( checkTargetValidate() ) return;
 
-            var basee = $gc('sendResourcesForm')[0];
-            var resSelector = $gc("resourceSelector")[0];
-            var imgs = $gt("i", resSelector);
+            // ── Detect which market HTML structure this server uses ─────────────────
+            // T4 standard: class="sendResourcesForm", inputs named lumber/clay/iron/crop
+            // This server: table#send_select.send_res, inputs named r1/r2/r3/r4
+            var basee = $gc('sendResourcesForm')[0] || document.querySelector('#send_select,table.send_res');
             if (!basee) return;
+            var isLegacyMarket = !$gc('sendResourcesForm')[0]; // true on this server
+
+            var resnames = isLegacyMarket ? ["r1","r2","r3","r4"] : ["lumber","clay","iron","crop"];
+
             var merInfo = $gc('merchantsInformation');
             var moC = null;
             var maxC = 0;
@@ -1676,119 +1701,97 @@
             var maxTr = 0;
             var lastLinkR = [0, 0, 0, 0];
             var checkRes = [];
-            var resnames = ["lumber", "clay", "iron", "crop"];
 
-            //if( checkMerchants() ) return;
             checkMerchants();
 
-            //fillXY();
-
             for (var i = 0; i < 4; i++) {
-                rxI[i] = $gn(resnames[i], basee)[0];
-                //rxI[i].addEventListener('keyup', mhRowUpdate, false);
-                //rxI[i].addEventListener('change', mhRowUpdate, false);
-                /*
-                var iRow = basee.rows[i];
-                $gt('a',iRow.cells[0])[0].addEventListener('click', mhRowUpdate, false);
-                $g('addRessourcesLink'+i,iRow).addEventListener('click', mhRowUpdate, false);
-                var ref = $a('-',[['href',jsVoid]]);
-                ref.addEventListener('click', function(x) { return function() { mhRowLinkM(x); }}( i ), false);
-                iRow.appendChild($c(ref,[['width','5%']]));
-                var ref = $a('R',[['href',jsVoid]]);
-                ref.addEventListener('click', function(x) { return function() { mhRowLinkR(x); }}( i ), false);
-                iRow.appendChild($c(ref,[['width','5%']]));
-                var ref = $a('+',[['href',jsVoid]]);
-                ref.addEventListener('click', function(x) { return function() { mhRowLinkP(x); }}( i ), false);
-                iRow.appendChild($c(ref,[['width','5%']]));
-                */
+                rxI[i] = document.querySelector('[name="' + resnames[i] + '"]');
                 checkRes[i] = $e('INPUT', [['type', 'checkbox'], ['checked', 'checked'], ['name', allIDs[18] + i]]);
-                //iRow.appendChild($c(checkRes[i],[['width','5%']]));
-                imgs[i].appendChild(checkRes[i]);
-            };
+            }
 
             var maxRM = $e('INPUT', [['type', 'TEXT'], ['size', 2], ['value', maxM], ['style', 'font-size:80%;']]);
             var maxRC = $e('INPUT', [['type', 'TEXT'], ['size', 5], ['value', maxTr], ['style', 'font-size:80%;']]);
-            if (merInfo.length > 0) { //show only on marketplace page. on map page we don't have this info
-                merInfo[0].firstElementChild.firstElementChild.appendChild($em('SPAN', [maxRM, ' Σ=', maxRC], [['style', 'margin:0px 5px;font-size:12px;']]));
+
+            // totalResources display element — insert after the table on legacy market
+            var totalResources = $e('div', [['style', 'margin:4px 0;font-size:12px;']]);
+
+            if (!isLegacyMarket) {
+                var resSelector = $gc("resourceSelector")[0];
+                var imgs = $gt("i", resSelector);
+                for (var i = 0; i < 4; i++) imgs[i].appendChild(checkRes[i]);
+                if (merInfo.length > 0) {
+                    merInfo[0].firstElementChild.firstElementChild.appendChild($em('SPAN', [maxRM, ' Σ=', maxRC], [['style', 'margin:0px 5px;font-size:12px;']]));
+                }
+                var summary = $gc("summary", basee)[0];
+                var nominator = $gc("nominator", summary)[0];
+                summary.appendChild(totalResources);
+                summary.childNodes[1].style.justifySelf = "end";
             }
 
-            var summary = $gc("summary", basee)[0];
-            var nominator = $gc("nominator", summary)[0];
-            var totalResources = $e('div', [['style', 'justify-self:start;']]);
-            summary.appendChild(totalResources);
-            summary.childNodes[1].style.justifySelf = "end";
-            /*
-            var newTR = $e('tr');
-            var cM = $c('',[['colspan','3']]);
-            newTR.appendChild(cM);
-            if( basee.rows.length > 4 ) {
-                for( i=basee.rows.length-1; i>3; i-- ) {
-                    var nc = basee.rows[i].cells.length;
-                    basee.rows[i].cells[nc-1].setAttribute('colspan',9-nc);
-                }
-                insertAfter(newTR,basee.rows[3]);
-            } else basee.appendChild(newTR);
-            */
             mhRowUpdate();
 
-            //var ref = $a('(M)',[['href',jsVoid]]);
-            //ref.addEventListener('click', mhRowLinkMPlus, false);
-            //newTR.appendChild($c(ref));
-            var memL = $a('M', [['href', jsVoid], ['style', 'font-size:15px;']]);
+            var memL = $a('M', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
             memL.addEventListener('click', function () { mhRowLinkMem(1); }, false);
-            var memL2 = $a('M/2', [['href', jsVoid], ['style', 'font-size:15px;']]);
+            var memL2 = $a('M/2', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
             memL2.addEventListener('click', function () { mhRowLinkMem(2); }, false);
-            var memL3 = $a('M/3', [['href', jsVoid], ['style', 'font-size:15px;']]);
+            var memL3 = $a('M/3', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
             memL3.addEventListener('click', function () { mhRowLinkMem(3); }, false);
-            var refEq = $a('=', [['href', jsVoid], ['style', 'font-size:15px;']]);
+            var refEq = $a('=', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
             refEq.addEventListener('click', mhRowsLinkEq, false);
-            var refP = $a('%', [['href', jsVoid], ['style', 'font-size:15px;']]);
+            var refP = $a('%', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
             refP.addEventListener('click', mhRowsLinkPP, false);
-            var refCl = $a('C', [['href', jsVoid], ['style', 'font-size:15px;']]);
+            var refCl = $a('C', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
             refCl.addEventListener('click', mhRowsLinkCl, false);
-            var newAllRes = $e('i', [['class', 'resources_medium']]);
-            var resSelector = $gc("resourceSelector", basee)[0];
-            var pButt = $gc("buttonFramed plus rectangle", basee)[0].cloneNode(true);
-            pButt.addEventListener('click', mhRowsLinkP, false);
-            pButt.removeAttribute('disabled');
-            var mButt = $gc("buttonFramed minus rectangle", basee)[0].cloneNode(true);
-            mButt.addEventListener('click', mhRowsLinkM, false);
-            mButt.removeAttribute('disabled');
-            var newDiv = $e('div', [['style', 'display:flex;justify-content:space-between;align-items:center;']]);
-            newDiv.appendChild(mButt);
+            var newDiv = $e('div', [['style', 'display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:4px 0;']]);
             newDiv.appendChild(memL);
             newDiv.appendChild(memL2);
             newDiv.appendChild(memL3);
             newDiv.appendChild(refEq);
             newDiv.appendChild(refP);
             newDiv.appendChild(refCl);
-            newDiv.appendChild(pButt);
-            resSelector.appendChild(newAllRes);
-            resSelector.appendChild(newDiv);
+            newDiv.appendChild(totalResources);
 
-            //if( /&r\d=/.test(crtPath) )
-            //	for( i=1; i<5; i++ ) try{ rxI[i].value = crtPath.match(new RegExp('&r'+i+'=(\\d+)'))[1]; } catch(e){};
+            if (isLegacyMarket) {
+                // Append the button bar and checkboxes after the send table
+                basee.parentNode.insertBefore(newDiv, basee.nextSibling);
+                // Append checkboxes into each resource row
+                var rows = basee.querySelectorAll('tr');
+                for (var i = 0; i < 4 && i < rows.length; i++) {
+                    rows[i].cells[rows[i].cells.length - 1].appendChild(checkRes[i]);
+                }
+                // Show merchant capacity info
+                var capEl = document.querySelector('#merchantCapacityValue');
+                if (capEl) capEl.parentNode.insertBefore($em('SPAN', [maxRM, ' Σ=', maxRC], [['style', 'margin:0 5px;font-size:12px;']]), capEl.nextSibling);
+            } else {
+                var resSelector = $gc("resourceSelector", basee)[0];
+                var pButt = $gc("buttonFramed plus rectangle", basee)[0].cloneNode(true);
+                pButt.addEventListener('click', mhRowsLinkP, false);
+                pButt.removeAttribute('disabled');
+                var mButt = $gc("buttonFramed minus rectangle", basee)[0].cloneNode(true);
+                mButt.addEventListener('click', mhRowsLinkM, false);
+                mButt.removeAttribute('disabled');
+                newDiv.insertBefore(mButt, newDiv.firstChild);
+                newDiv.appendChild(pButt);
+                resSelector.appendChild($e('i', [['class', 'resources_medium']]));
+                resSelector.appendChild(newDiv);
+            }
 
             addButtonsEvent();
 
+            // Observe merchant count changes
             var MutationObserver = window.MutationObserver;
-            var observer = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    if (mutation.type === 'characterData') {
-                        reloadMerchants();
-                    }
-                });
-            });
-            observer.observe(moC, { childList: true, subtree: true, characterData: true });
-
-            var observer1 = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    if (mutation.type === 'characterData') {
-                        mhRowUpdate();
-                    }
-                });
-            });
-            observer1.observe(nominator, { childList: true, subtree: true, characterData: true });
+            var moCEl = isLegacyMarket ? document.querySelector('.merchantsAvailable') : moC;
+            if (moCEl) {
+                var observer = new MutationObserver(function () { reloadMerchants(); });
+                observer.observe(moCEl, { childList: true, subtree: true, characterData: true });
+            }
+            if (!isLegacyMarket) {
+                var nominator = $gc("nominator", $gc("summary", basee)[0])[0];
+                if (nominator) {
+                    var observer1 = new MutationObserver(function () { mhRowUpdate(); });
+                    observer1.observe(nominator, { childList: true, subtree: true, characterData: true });
+                }
+            }
         }
 
         // 'Repeat' offer possition
