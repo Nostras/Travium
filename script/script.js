@@ -482,8 +482,8 @@
 
         // Safer ID selector
         // IDs that are legitimately absent on many pages - suppress warnings for these
-        var $g_optional = new Set(['villageBoxes', 'llist', 'villageContent', 'resourceFieldContainer',
-            'villageNameField', 'villageName', 'troops', 'movements', 'PlayerProfileEditor']);
+        var $g_optional = new Set(['villageBoxes','llist','villageContent','resourceFieldContainer',
+            'villageNameField','villageName','troops','movements','PlayerProfileEditor']);
         function $g(id) {
             const el = document.getElementById(id);
             if (!el && !$g_optional.has(id)) { console.warn(`[TTQ Debug] Element ID not found: ${id}`); }
@@ -667,11 +667,11 @@
             try {
                 if (aText !== "") {
                     var prodMatch = aText.match(/resources\.production\s*=\s*({[^}]+})/) ||
-                        aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
+                                    aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
                     if (prodMatch) {
                         try {
                             productionData = JSON.parse(prodMatch[1]);
-                        } catch (e) {
+                        } catch(e) {
                             var jsonStr = prodMatch[1].replace(/'/g, '"').replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
                             productionData = JSON.parse(jsonStr);
                         }
@@ -3525,7 +3525,7 @@
                 if (!capital || capital == 0) capital = villages_id[0] || village_aid || 1;
                 if (RB.dictionary[0] != capital || RB.dictFL[1] == 0 || fl) {
                     var ally = '';
-                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1]; } catch (e) { }
+                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont).snapshotItem(2).innerHTML.match(/>(.+?):?</)[1]; } catch(e) {}
                     RB.dictionary[0] = capital;
                     RB.dictionary[1] = ally;
                     saveCookie('Dict', 'dictionary');
@@ -7545,6 +7545,20 @@
                 });
                 return;
             }
+        } else {
+            // No Variables.js — read map config from TravianDefaults (private server fallback)
+            var tw = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+            var td = tw.TravianDefaults;
+            if (td && td.Map && td.Map.Size) {
+                if (RB.Setup[48] == 0) { RB.Setup[48] = td.Map.Size.width; }
+            }
+            // Sensible defaults for flags that Variables.js would normally supply
+            if (RB.Setup[45] == 0) { RB.Setup[45] = 1; }   // speed (1=normal; user can adjust in settings)
+            if (RB.Setup[46] == 0) { RB.Setup[46] = 2; }   // no territory
+            if (RB.Setup[47] == 0) { RB.Setup[47] = 2; }   // tribe set: Romans/Gauls/Teutons
+            if (RB.Setup[50] == 0) { RB.Setup[50] = 1; }   // wrap at world edge
+            if (RB.Setup[52] == 0) { RB.Setup[52] = 2; }   // no keepVidOnConquer
+            saveCookie('RBSetup', 'Setup');
         }
 
         TroopsData();
