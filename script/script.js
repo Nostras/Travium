@@ -5434,6 +5434,14 @@
             gid = gid.split(/\s/)[0];
             var init = true;
             if (gid == 'gid17') {
+                // If send form is already in DOM (direct URL like ?z=X&t=5), call immediately
+                if (cont && cont.querySelector('.available')) {
+                    init = false;
+                    marketSend(); marketSumm(); marketOffer();
+                }
+                if (cont && cont.querySelector('table.offers')) marketBuy();
+                if (cont && cont.querySelector('.exchangeResources')) npcForTroops();
+                if (cont && cont.querySelector('div#tradeRouteEditCreate')) marketTradeRoutes();
                 const mutationCallback = (mutationsList, observer) => {
                     for (const mutation of mutationsList) {
                         if (mutation.type === 'childList') {
