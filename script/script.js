@@ -5758,9 +5758,10 @@
                 return [pl, ar];
             }
             function cropFindGetMap(a) {
-                param = '{"data":{"x":' + a.rX + ',"y":' + a.rY + ',"zoomLevel":2,"ignorePositions":[]}}';
-                ajaxRequest(fullName + 'api/v1/map/position', 'POST', param, function (ajaxResp) {
+                param = 'cmd=mapPositionData&data%5Bx%5D=' + a.rX + '&data%5By%5D=' + a.rY + '&data%5BzoomLevel%5D=1';
+                ajaxRequest(fullName + 'ajax.php?cmd=mapPositionData', 'POST', param, function (ajaxResp) {
                     var mapData = JSON.parse(ajaxResp.responseText);
+                    if (mapData.response && mapData.response.tiles) mapData = mapData.response;
                     var pRules = [[/{k.f1}/, 'Crop 9:', c9], [/{k.f6}/, 'Crop 15:', c15], [/{k.f13}/, 'Crop 18:', c18], [/{k.f7}/, '4-4-3-7:', c7], [/{k.f8}/, '3-4-4-7:', c7], [/{k.f9}/, '4-3-4-7:', c7]];
                     for (var i = 0; i < mapData.tiles.length; i++) {
                         if (typeof mapData.tiles[i].title != 'undefined') {
