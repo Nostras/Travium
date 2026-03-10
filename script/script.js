@@ -1472,6 +1472,7 @@
             var extNegat = 0;
             function mhRowLinkMem(ratio) {
                 loadVCookie('vPPH', 'village_PPH', RB.wantsMem[4]);
+                console.log("[TRBP market] mhRowLinkMem: wantsMem[4]="+RB.wantsMem[4]+" x="+($gn('x')[0]?$gn('x')[0].value:'no x input')+"|y="+($gn('y')[0]?$gn('y')[0].value:'no y input'));
                 if (RB.wantsMem[4] == 0) return;
                 var arXY = id2xy(RB.wantsMem[4]);
                 var coordX = parseInt($gt('input', $gc('coordinateX', basee)[0])[0].getAttribute("value"));
@@ -1651,6 +1652,7 @@
             function checkMerchants() {
                 // Support both T4 standard (class=summary/denominator) and legacy (merchantsAvailable span)
                 var merInfoEl = $gc('summary')[0];
+                console.log("[TRBP market] checkMerchants: merInfoEl=", merInfoEl ? merInfoEl.className : "null", "denominator count=", merInfoEl ? $gc('denominator', merInfoEl).length : 0);
                 if (merInfoEl && $gc('denominator', merInfoEl).length > 1) {
                     moC = $gc('denominator', merInfoEl)[1];
                     maxM = parseInt(moC.textContent.onlyText()) || 0;
@@ -1680,6 +1682,7 @@
                     RB.village_Var[0] = maxC;
                     saveVCookie('VV', RB.village_Var);
                 }
+                console.log("[TRBP market] checkMerchants result: maxM="+maxM+" maxC="+maxC+" maxTr="+maxTr);
             }
 
             //if( checkTargetValidate() ) return;
