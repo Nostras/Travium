@@ -483,8 +483,10 @@
         // Safer ID selector
         // IDs that are legitimately absent on many pages - suppress warnings for these
         var $g_optional = new Set(['villageBoxes','llist','villageContent','resourceFieldContainer',
-            'villageNameField','villageName','troops','movements','PlayerProfileEditor']);
+            'villageNameField','villageName','troops','movements','PlayerProfileEditor',
+            'tileDetails','ttyyimm','mapContainer','tileInfo','tileName']);
         function $g(id) {
+            if (!id) return null; // guard against $g(undefined)
             const el = document.getElementById(id);
             if (!el && !$g_optional.has(id)) { console.warn(`[TTQ Debug] Element ID not found: ${id}`); }
             return el;
@@ -7553,7 +7555,7 @@
                 if (RB.Setup[48] == 0) { RB.Setup[48] = td.Map.Size.width; }
             }
             // Sensible defaults for flags that Variables.js would normally supply
-            if (RB.Setup[45] == 0) { RB.Setup[45] = 1; }   // speed (1=normal; user can adjust in settings)
+            if (RB.Setup[45] == 0) { RB.Setup[45] = 20; }  // speed (matches 20x server)
             if (RB.Setup[46] == 0) { RB.Setup[46] = 2; }   // no territory
             if (RB.Setup[47] == 0) { RB.Setup[47] = 2; }   // tribe set: Romans/Gauls/Teutons
             if (RB.Setup[50] == 0) { RB.Setup[50] = 1; }   // wrap at world edge
