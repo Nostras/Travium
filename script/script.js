@@ -5469,7 +5469,8 @@
                 getRPDict();
                 if (! /tt=(99|100)/.test(crtPath) && !($g('raidList'))) {
                     stopRP(); incomeResourcesInRP(); detectNameAttaker(); calcAllTroops(); rpFL = true;
-                    if ($gc('a2b').length > 0) { fillXYtoRP(); rpDefaultAction(); getTroopNames(); }
+                    rpDefaultAction(); getTroopNames();
+                    if ($gc('a2b').length > 0) { fillXYtoRP(); }
                 } else {
                     goldClubInfo();
                 }
