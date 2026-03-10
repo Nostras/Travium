@@ -361,28 +361,44 @@ systemctl start travium-sync.service
 #####################################
 # Define your domain
 SSL_DIR="/etc/nginx/ssl-certificates"
+CA_NAME="LOCALTRAV"
 
-# Generate a new private key and a wildcard CSR
-openssl req -new -newkey rsa:2048 -nodes -keyout "$SSL_DIR/$DOMAIN.key" -out "$SSL_DIR/$DOMAIN.csr" \
-  -subj "/C=US/ST=State/L=Locality/O=Organization/OU=Unit/CN=*.$DOMAIN"
+# --- STEP 1: Create the Root CA (The "Boss") ---
+# We only do this once. This is the file you install on Windows/Android.
+if [ ! -f "$SSL_DIR/$CA_NAME.key" ]; then
+    echo "Generating New Root CA..."
+    openssl genrsa -out "$SSL_DIR/$CA_NAME.key" 2048
+    openssl req -x509 -new -nodes -key "$SSL_DIR/$CA_NAME.key" -sha256 -days 3650 \
+        -out "$SSL_DIR/$CA_NAME.crt" \
+        -subj "/C=US/ST=State/L=Locality/O=Development/CN=$CA_NAME"
+fi
 
-# Create a config file for the Subject Alternative Names (SAN)
+# --- STEP 2: Generate Domain Key & CSR ---
+openssl genrsa -out "$SSL_DIR/$DOMAIN.key" 2048
+openssl req -new -key "$SSL_DIR/$DOMAIN.key" -out "$SSL_DIR/$DOMAIN.csr" \
+    -subj "/C=US/ST=State/L=Locality/O=Organization/OU=Unit/CN=*.$DOMAIN"
+
+# --- STEP 3: Create the Config with SAN and CA:FALSE ---
 cat > /tmp/openssl.cnf <<EOF
-[v3_req]
-keyUsage = critical, digitalSignature, keyEncipherment
-extendedKeyUsage = serverAuth
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
 subjectAltName = @alt_names
+
 [alt_names]
 DNS.1 = $DOMAIN
 DNS.2 = *.$DOMAIN
 EOF
 
-# Sign the certificate using the key and the SAN config
-openssl x509 -req -days 365 -in "$SSL_DIR/$DOMAIN.csr" -signkey "$SSL_DIR/$DOMAIN.key" \
-  -out "$SSL_DIR/$DOMAIN.crt" -extensions v3_req -extfile /tmp/openssl.cnf
+# --- STEP 4: Sign the Domain Cert with the Root CA ---
+openssl x509 -req -in "$SSL_DIR/$DOMAIN.csr" \
+    -CA "$SSL_DIR/$CA_NAME.crt" -CAkey "$SSL_DIR/$CA_NAME.key" \
+    -CAcreateserial -out "$SSL_DIR/$DOMAIN.crt" \
+    -days 825 -sha256 -extfile /tmp/openssl.cnf
 
-# Reload Nginx to apply the changes
+# Reload Nginx
 systemctl reload nginx
+echo "Done! Install $CA_NAME.crt on your devices."
 
 #####################################
 # summary
