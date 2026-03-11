@@ -707,16 +707,17 @@
                 incomepersecond[k] = income[k] / 3600;
             }
 
-            // Save vPPH so the Sigma tab can sum production across villages
-            // Format: villageID.l1.l2.l3.l4./ per row, rows separated by ./
+            // Save full village_PPH (13 elements) for the village overview panel
+            // [0-3]=income/h, [4-7]=current res, [8-11]=max res, [12]=timestamp
             if (village_aid > 0 && income[0] !== undefined) {
-                var oldPPH = RB_getValue(GMcookieID + 'vPPH', '');
-                // Remove existing entry for this village
-                var vidStr = String(village_aid);
-                var newPPH = oldPPH.replace(new RegExp(vidStr + '\\.[^/]+\\/', 'g'), '');
-                // Append updated entry
-                newPPH += vidStr + '.' + income[0] + '.' + income[1] + '.' + income[2] + '.' + income[3] + '.\/';
-                RB_setValue(GMcookieID + 'vPPH', newPPH);
+                RB.village_PPH[0] = income[0]; RB.village_PPH[1] = income[1];
+                RB.village_PPH[2] = income[2]; RB.village_PPH[3] = income[3];
+                RB.village_PPH[4] = res[0]; RB.village_PPH[5] = res[1];
+                RB.village_PPH[6] = res[2]; RB.village_PPH[7] = res[3];
+                RB.village_PPH[8] = max[0]; RB.village_PPH[9] = max[1];
+                RB.village_PPH[10] = max[2]; RB.village_PPH[11] = max[3];
+                RB.village_PPH[12] = Math.round(Date.now() / 1000);
+                saveVCookie('vPPH', RB.village_PPH);
             }
 
             return true;
