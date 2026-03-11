@@ -1348,7 +1348,7 @@
                     if (market[mr].cells.length < 9) break;
                     var btn = market[mr].cells[8].getElementsByTagName('BUTTON');
                     if (btn.length == 0) continue;
-                    var wanted = parseInt(market[mr].cells[2].textContent.onlyText().replace(/\s/g, '').replace(/\./g, '').replace(/,/g, ''));
+                    var wanted = toNumber(market[mr].cells[2].textContent);
                     var totMerchants = Math.ceil(wanted / RB.village_Var[0]);
                     var crtExceed = wanted - totMerchants * RB.village_Var[0];
                     var newTip = RB.dictionary[2] + ': ' + totMerchants;
@@ -1655,7 +1655,7 @@
                 var merInfoEl = $gc('summary')[0];
                 if (merInfoEl && $gc('denominator', merInfoEl).length > 1) {
                     moC = $gc('denominator', merInfoEl)[1];
-                    maxM = parseInt(moC.textContent.onlyText()) || 0;
+                    maxM = toNumber(moC.textContent) || 0;
                     var mDiv = merInfoEl.firstElementChild.nextSibling;
                     mName = mDiv ? mDiv.textContent.split(":")[0] : RB.dictionary[2];
                     maxTr = toNumber($gc('denominator', merInfoEl)[0].textContent);
@@ -4458,7 +4458,7 @@
                     var unitMatch = imgClass.match(/ u(.+)/);
                     if (!unitMatch) { console.log("[TRBP troops] row "+i+" img class no match: "+imgClass); continue; }
                     newCookie[t++] = unitMatch[1];
-                    newCookie[t++] = troops[i].cells[1].innerHTML;
+                    newCookie[t++] = toNumber(troops[i].cells[1].innerHTML);
                     if (!fl) {
                         if (RB.village_dorf12[t - 2] == undefined) fl = true;
                         if (RB.village_dorf12[t - 2] != newCookie[t - 2]) fl = true;
@@ -5154,7 +5154,7 @@
             var ownTable = false;
             for (var i = 0; i < townTables.length; i++) {
                 var ttable = townTables[i];
-                uFL = (new RegExp("profile/" + userID)).test(ttable.rows[0].cells[1].innerHTML);
+                uFL = (new RegExp("profile/" + userID)).test(ttable.rows[0].cells[1].innerHTML) || (new RegExp("spieler\.php.*uid=" + userID)).test(ttable.rows[0].cells[1].innerHTML) || (new RegExp("uid=" + userID)).test(ttable.rows[0].cells[1].innerHTML);
                 if (oFL || !uFL) for (var t = 0; t < 10; t++) {
                     var tC = toNumber(ttable.rows[2].cells[t + 1].innerHTML);
                     if (isFinite(tC)) { sumT[t] += tC; sumC += troopInfo(parseInt(RB.Setup[2]) * 10 + t + 1, 9) * tC; }
@@ -5634,7 +5634,7 @@
             function speedBidsSub(node) {
                 var bform = $gc('auctionDetails', node)[0];
                 if (!(bform)) return;
-                var curBid = parseInt($gt('SPAN', bform)[0].textContent);
+                var curBid = toNumber($gt('SPAN', bform)[0].textContent);
                 $gt('INPUT', bform)[0].value = curBid + parseInt(RB.Setup[23]);
             }
             var target = $g('heroAuction');
@@ -5654,7 +5654,7 @@
             } else {
                 var bform = $gc('auctionDetails', cont)[0];
                 if (!(bform)) return;
-                var curBid = parseInt($gt('SPAN', bform)[0].innerHTML);
+                var curBid = toNumber($gt('SPAN', bform)[0].innerHTML);
                 $gn('maxBid', bform)[0].value = curBid + parseInt(RB.Setup[23]);
             }
         }
@@ -6033,7 +6033,7 @@
             function parseTroops(pRows, pRU, ptS) {
                 var pRace = Math.floor(parseInt($gt('IMG', pRows[0].cells[1])[0].getAttribute('class').match(/u(\d+)/)[1]) / 10);
                 for (var i = 10; i > 0; i--) {
-                    tCount = parseInt(pRows[1].cells[i].innerHTML).NaN0();
+                    tCount = toNumber(pRows[1].cells[i].innerHTML);
                     var tKirillC = tCount;
                     if (tCount > 0) {
                         for (j = 0; j < pRU.length; j++) ptS[0][j] += troopInfo(pRace * 10 + i, pRU[j]) * tCount;
@@ -6825,11 +6825,11 @@
                 if (valSpans.length < 5) continue;
                 var nTime = toSeconds($gc('duration', detailEl)[0] ? $gc('duration', detailEl)[0].textContent : '0:00:00');
                 wRes[t++] = [tinp, tname, nTime,
-                    parseInt(valSpans[0].textContent),
-                    parseInt(valSpans[1].textContent),
-                    parseInt(valSpans[2].textContent),
-                    parseInt(valSpans[3].textContent),
-                    parseInt(valSpans[4].textContent)];
+                    toNumber(valSpans[0].textContent),
+                    toNumber(valSpans[1].textContent),
+                    toNumber(valSpans[2].textContent),
+                    toNumber(valSpans[3].textContent),
+                    toNumber(valSpans[4].textContent)];
                 tinp.addEventListener('keyup', resRecalc, false);
                 tinp.addEventListener('click', resRecalc, false);
             }
