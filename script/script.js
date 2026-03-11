@@ -1388,7 +1388,6 @@
 
         // market send page :)
         function marketSend() {
-            console.log("[TRBP market] marketSend called, send_res:", !!document.querySelector("table.send_res"), "sendResourcesForm:", !!document.querySelector(".sendResourcesForm"));
             function setMerchantsCell(tM, tR, colM) {
                 totalResources.textContent = tR;
                 $at(totalResources, [['style', 'justify-self:start; color:' + colM + ';']]);
@@ -1472,12 +1471,13 @@
             var extNegat = 0;
             function mhRowLinkMem(ratio) {
                 loadVCookie('vPPH', 'village_PPH', RB.wantsMem[4]);
-                console.log("[TRBP market] mhRowLinkMem: wantsMem[4]="+RB.wantsMem[4]+" x="+($gn('x')[0]?$gn('x')[0].value:'no x input')+"|y="+($gn('y')[0]?$gn('y')[0].value:'no y input'));
                 if (RB.wantsMem[4] == 0) return;
                 var arXY = id2xy(RB.wantsMem[4]);
-                var coordX = parseInt($gt('input', $gc('coordinateX', basee)[0])[0].getAttribute("value"));
-                var coordY = parseInt($gt('input', $gc('coordinateY', basee)[0])[0].getAttribute("value"));
-                if (arXY[0] != coordX || arXY[1] != coordY) { sendResourses(RB.wantsMem[4]); return; }
+                var cxEl = ($gc('coordinateX', basee)[0] && $gt('input', $gc('coordinateX', basee)[0])[0]) || $gn('x')[0];
+                var cyEl = ($gc('coordinateY', basee)[0] && $gt('input', $gc('coordinateY', basee)[0])[0]) || $gn('y')[0];
+                var coordX = cxEl ? parseInt(cxEl.value || cxEl.getAttribute("value") || NaN) : NaN;
+                var coordY = cyEl ? parseInt(cyEl.value || cyEl.getAttribute("value") || NaN) : NaN;
+                if (!isNaN(coordX) && !isNaN(coordY) && (arXY[0] != coordX || arXY[1] != coordY)) { sendResourses(RB.wantsMem[4]); return; }
                 //var coordXInput = $gt('input',$gc('coordinateX',basee)[0])[0];
                 //var coordYInput = $gt('input',$gc('coordinateY',basee)[0])[0];
                 //var coordX = parseInt(coordXInput.getAttribute("value"));
@@ -1652,7 +1652,6 @@
             function checkMerchants() {
                 // Support both T4 standard (class=summary/denominator) and legacy (merchantsAvailable span)
                 var merInfoEl = $gc('summary')[0];
-                console.log("[TRBP market] checkMerchants: merInfoEl=", merInfoEl ? merInfoEl.className : "null", "denominator count=", merInfoEl ? $gc('denominator', merInfoEl).length : 0);
                 if (merInfoEl && $gc('denominator', merInfoEl).length > 1) {
                     moC = $gc('denominator', merInfoEl)[1];
                     maxM = parseInt(moC.textContent.onlyText()) || 0;
@@ -1670,8 +1669,17 @@
                         if (parts) { moC = mavEl; maxM = parseInt(parts[2]); }
                         mName = parentText.replace(/[\d\/\s\u200e\u200f]+/g, '').trim() || RB.dictionary[2];
                     }
+                    // #merchantCapacityValue shows TOTAL capacity (maxM × per-merchant)
+                    // Find per-merchant capacity from "carry 10000" text, or divide total by maxM
                     var capEl = document.querySelector('#merchantCapacityValue');
-                    maxC = capEl ? parseInt(capEl.textContent) : 750;
+                    var totalCap = capEl ? parseInt(capEl.textContent) : 0;
+                    // Try to find per-merchant carry text: "can carry 10000"
+                    var carryMatch = document.body.innerHTML.match(/carry\s+([\d,\.]+)\s+res/i);
+                    if (carryMatch) {
+                        maxC = parseInt(carryMatch[1].replace(/[,\.]/g, '')) || (maxM > 0 ? Math.round(totalCap / maxM) : 750);
+                    } else {
+                        maxC = maxM > 0 && totalCap > 0 ? Math.round(totalCap / maxM) : (totalCap || 750);
+                    }
                     maxTr = maxM * maxC;
                 }
                 if (mName && mName != RB.dictionary[2]) {
@@ -1682,7 +1690,6 @@
                     RB.village_Var[0] = maxC;
                     saveVCookie('VV', RB.village_Var);
                 }
-                console.log("[TRBP market] checkMerchants result: maxM="+maxM+" maxC="+maxC+" maxTr="+maxTr);
             }
 
             //if( checkTargetValidate() ) return;
@@ -5206,7 +5213,7 @@
                 //Egyptians
                 10, 30, 20, 45, 60, 30, 15, 7 * m, 15, 1, 30, 55, 40, 115, 100, 145, 60, 6 * m, 50, 1, 65, 50, 20, 170, 180, 220, 80, 7 * m, 45, 1, 0, 20, 10, 170, 150, 20, 40, 16 * m, 0, 2, 50, 110, 50, 360, 330, 280, 120, 15 * m, 50, 2, 110, 120, 150, 450, 560, 610, 180, 10 * m, 70, 3, 55, 30, 95, 995, 575, 340, 80, 4 * m, 0, 3, 65, 55, 10, 980, 1510, 660, 100, 3 * m, 0, 6, 40, 50, 50, 34000, 50000, 34000, 42000, 4 * m, 0, 4, 0, 80, 80, 5040, 6510, 4830, 4620, 5 * m, 3000, 1,
                 //Huns
-                35, 40, 30, 130, 80, 40, 40, 6 * m, 50, 1, 50, 30, 10, 140, 110, 60, 60, 6 * m, 30, 1, 0, 20, 10, 170, 150, 20, 40, 19 * m, 0, 2, 120, 30, 15, 290, 370, 190, 45, 16 * m, 75, 2, 115, 80, 70, 320, 350, 330, 50, 15 * m, 105, 2, 180, 60, 40, 450, 560, 610, 140, 14 * m, 80, 3, 65, 30, 90, 1060, 330, 360, 70, 4 * m, 0, 3, 45, 55, 10, 950, 1280, 620, 60, 3 * m, 0, 6, 50, 40, 30, 37200, 27600, 25200, 27600, 5 * m, 0, 4, 10, 80, 80, 6100, 4600, 4800, 5400, 5 * m, 3000, 1,
+                35, 40, 30, 130, 80, 40, 40, 6 * m, 50, 1, 50, 30, 10, 140, 110, 60, 60, 6 * m, 30, 1, 0, 20, 10, 170, 150, 20, 40, 19 * m, 0, 2, 120, 30, 15, 290, 370, 190, 45, 16 * m, 75, 2, 110, 80, 70, 320, 350, 330, 50, 15 * m, 105, 2, 180, 60, 40, 450, 560, 610, 140, 14 * m, 80, 3, 65, 30, 90, 1060, 330, 360, 70, 4 * m, 0, 3, 45, 55, 10, 950, 1280, 620, 60, 3 * m, 0, 6, 50, 40, 30, 37200, 27600, 25200, 27600, 5 * m, 0, 4, 10, 80, 80, 6100, 4600, 4800, 5400, 5 * m, 3000, 1,
                 //Spartans
                 50, 35, 30, 110, 185, 110, 35, 6 * m, 60, 1, 0, 40, 22, 185, 150, 35, 75, 9 * m, 0, 1, 40, 85, 45, 145, 95, 245, 45, 8 * m, 40, 1, 90, 55, 40, 130, 200, 400, 65, 6 * m, 50, 1, 55, 120, 90, 555, 445, 330, 110, 16 * m, 110, 2, 195, 80, 75, 660, 495, 995, 165, 9 * m, 80, 3, 65, 30, 80, 525, 260, 790, 130, 4 * m, 0, 3, 50, 60, 10, 550, 1240, 825, 135, 3 * m, 0, 6, 40, 60, 40, 33450, 30665, 36240, 13935, 4 * m, 0, 4, 10, 80, 80, 5115, 5580, 6045, 3255, 5 * m, 3000, 1,
                 //Vikings
