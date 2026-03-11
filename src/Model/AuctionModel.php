@@ -457,7 +457,6 @@ class AuctionModel
             if ($rand['btype'] == 15 && Formulas::getArtworkReleaseTime() > time()) {
                 continue;
             }
-            if ($rand['btype'] == 15 && getGameSpeed() <= 100) continue;
             $amounts = heroAuction::getPackagesFakeAuctionForItemTypeId($rand['type']);
             if ($highSpeedTrainingHelmets && $rand['btype'] == 1 && ($rand['type'] >= 10 && $rand['type'] <= 15)) continue;
             if ($rand['btype'] <= 6) {
