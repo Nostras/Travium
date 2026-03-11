@@ -1672,7 +1672,7 @@
                     // #merchantCapacityValue shows TOTAL capacity (maxM × per-merchant)
                     // Find per-merchant capacity from "carry 10000" text, or divide total by maxM
                     var capEl = document.querySelector('#merchantCapacityValue');
-                    var totalCap = capEl ? parseInt(capEl.textContent) : 0;
+                    var totalCap = capEl ? toNumber(capEl.textContent) : 0;
                     // Try to find per-merchant carry text: "can carry 10000"
                     var carryMatch = document.body.innerHTML.match(/carry\s+([\d,\.]+)\s+res/i);
                     if (carryMatch) {
@@ -2660,8 +2660,19 @@
                 var vID = $xf('thead/tr/td[@class="role"]/a', 'f', ttable).getAttribute('href').match(/d=(\d+)/)[1];
                 var mLinks = $xf('tbody/tr/td/div[@class="res"]', 'f', ttable);
                 if (mLinks && RB.Setup[10] > 0) {
-                    var timeToGo = toSeconds($xf('tbody/tr/td/div/span[contains(@id, "timer") or contains(@class,"timer")]', 'f', ttable).innerHTML);
-                    var incomingRes = mLinks.innerHTML.match(/>\s*?(\d+)/g);
+                    var timerSpan = $xf('tbody/tr/td/div/span[contains(@id, "timer") or contains(@class,"timer")]', 'f', ttable);
+                    var timeToGo = timerSpan ? toSeconds(timerSpan.innerHTML) : 0;
+                    // Use .value spans to read full numbers (handles comma-formatted values like 163,516)
+                    var valSpans = mLinks.querySelectorAll('.value');
+                    var incomingRes;
+                    if (valSpans.length >= 4) {
+                        incomingRes = [];
+                        for (var rv = 0; rv < 4; rv++) incomingRes[rv] = valSpans[rv].textContent;
+                    } else {
+                        // Fallback: regex but strip commas/dots first
+                        var cleanHTML = mLinks.innerHTML.replace(/([\d]),([\d])/g, '$1$2');
+                        incomingRes = cleanHTML.match(/>\s*?(\d+)/g);
+                    }
                     if (incomingRes) resourceCalculator(ttable, timeToGo, incomingRes);
                 }
             }
@@ -5144,13 +5155,13 @@
                 var ttable = townTables[i];
                 uFL = (new RegExp("profile/" + userID)).test(ttable.rows[0].cells[1].innerHTML);
                 if (oFL || !uFL) for (var t = 0; t < 10; t++) {
-                    var tC = parseInt(ttable.rows[2].cells[t + 1].innerHTML);
+                    var tC = toNumber(ttable.rows[2].cells[t + 1].innerHTML);
                     if (isFinite(tC)) { sumT[t] += tC; sumC += troopInfo(parseInt(RB.Setup[2]) * 10 + t + 1, 9) * tC; }
                 }
                 if (oFL && uFL) {
                     ownTable = ttable;
                     if (ttable.rows[2].cells.length > 11) {
-                        var tC = parseInt(ttable.rows[2].cells[t + 1].innerHTML);
+                        var tC = toNumber(ttable.rows[2].cells[t + 1].innerHTML);
                         if (isFinite(tC)) {
                             sumT[10] += tC; sumC += tC * 6;
                         }
@@ -5326,7 +5337,7 @@
             var ts = [0, 0, 0, 0];
             for (var i = 0; i < troopsTR.length; i++) {
                 tt = oasisSearch ? parseInt($gt('i', troopsTR[i])[0].getAttribute('class').match(/\d+/)[0]) : parseInt($gt('IMG', troopsTR[i])[0].getAttribute('class').match(/\d+/)[0]);
-                tc = oasisSearch ? parseInt($gt('span', troopsTR[i])[0].textContent) : toNumber(troopsTR[i].cells[1].innerHTML);
+                tc = oasisSearch ? toNumber($gt('span', troopsTR[i])[0].textContent) : toNumber(troopsTR[i].cells[1].innerHTML);
                 ti = [gti(tt, 1, tc), gti(tt, 2, tc), tc, gti(tt, 9, tc)];
                 ts = [ts[0] + ti[0], ts[1] + ti[1], ts[2] + ti[2], ts[3] + ti[3]];
                 ITTb.appendChild($em('TR', [$c(trImg('unit u' + tt)), $c(humanRF(ti[0])), $c(humanRF(ti[1])), $c(humanRF(ti[2])), $c(humanRF(ti[3]))]));
@@ -5410,7 +5421,7 @@
         function crannyCalc() {
             var allB = $gc('number', cont);
             if (allB.length == 0) allB = $gt('B', cont);
-            var cap = parseInt(allB[0].innerHTML);
+            var cap = toNumber(allB[0].innerHTML);
             if (isNaN(cap)) return;
             var s = parseInt(RB.Setup[24]) / 100;
             $at(allB[0], [['title', Math.round(cap * s)]]);
@@ -6028,14 +6039,14 @@
                         if (i < 7 && troopInfo(pRace * 10 + i, 9) > 1) ptS[3] += troopInfo(pRace * 10 + i, 0) * tCount;
                     }
                     if (pRows.length > 2) if (pRows[2].cells.length > 3) {
-                        tCount = parseInt(pRows[2].cells[i].innerHTML);
+                        tCount = toNumber(pRows[2].cells[i].innerHTML);
                         if (tCount > 0) {
                             for (j = 0; j < pRU.length; j++) ptS[1][j] += troopInfo(pRace * 10 + i, pRU[j]) * tCount;
                             tKirillC -= tCount;
                         }
                     }
                     if (pRows.length > 3) if (pRows[3].cells.length > 3) {
-                        tCount = parseInt(pRows[3].cells[i].innerHTML);
+                        tCount = toNumber(pRows[3].cells[i].innerHTML);
                         if (tCount > 0) {
                             for (j = 0; j < pRU.length; j++) {
                                 ptS[2][j] += troopInfo(pRace * 10 + i, pRU[j]) * tCount;
@@ -6069,7 +6080,7 @@
             ress[0] = 0;
             for (var i = 1; i <= res.length; i++) {
                 var sp = $gt('span', res[i - 1]);
-                ress[i] = parseInt(sp[0].textContent);
+                ress[i] = toNumber(sp[0].textContent);
             }
 
             if (res.length === 6) {
@@ -6735,8 +6746,8 @@
             var sumC = 0, sumV = 0;
             var villRow = RB.Setup[46] == 1 ? 5 : 4;
             for (var i = 1; i < members.rows.length; i++) {
-                sumC += parseInt(members.rows[i].cells[3].textContent);
-                sumV += parseInt(members.rows[i].cells[villRow].textContent);
+                sumC += toNumber(members.rows[i].cells[3].textContent);
+                sumV += toNumber(members.rows[i].cells[villRow].textContent);
             }
             i--;
             var semafor = $e('div', [['style', 'text-align:center;']]);
