@@ -596,17 +596,6 @@ class GameView
         $view->vars['links'] = null;
         $view->vars['plus'] = $this->session->hasPlus() || $this->session->isAdmin();
         $view->vars['editBlack'] = get_button_id();
-        if (getDisplay("showPinnedLinkList")) {
-            if(Config::getAdvancedProperty('voucherEnabled')){
-                $view->vars['links'] .= '<li class="" title="' . T("LinkList", "Vouchers (GoldBank)") . '<"><a href="/voucher.php">&#9658; ' . T("LinkList", "Vouchers (GoldBank)") . '</a></li>';
-            } else {
-                $view->vars['links'] .= '<li class="" title="' . T("TransferGold", "title") . '<"><a href="/voucher.php?t=3">&#9658; ' . T("TransferGold", "title") . '</a></li>';
-            }
-            $view->vars['links'] .= '<li class="" title="' . T("LinkList", "Farmlist") . '"><a href="/build.php?tt=99&id=39">&#9658; ' . T("LinkList", "Farmlist") . '</a></li>';
-            if (!$this->session->isAdmin()) {
-                $view->vars['links'] .= '<li class="newTab" title="' . htmlspecialchars(T("LinkList", "Contact Support") . '<br /><span class="notice">' . T("links", "linkWillOpenInNewTab") . '</span>') . '"><a target="_blank" style="color: red; font-weight: bold" href="/messages.php?t=1&id=2"><img src="img/x.gif" alt="" /> &#9658; ' . T("LinkList", "Contact Support") . '</a></li>';
-            }
-        }
         if ($this->session->isAdmin()) {
             $view->vars['links'] .= '<li class="newTab" title="' . htmlspecialchars(T("LinkList",
                         "Go to admin panel") . '<br /><span class="notice">' . T("links",
