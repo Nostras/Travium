@@ -6806,25 +6806,35 @@
                 var tname = tinp.getAttribute('name');
                 var tarm = tname.match(/t(\d+)/);
                 if (tarm) tarm = tarm[1]; else continue;
-                var res = $gc('resourceWrapper', tinp.parentNode.parentNode);
-                if (res.length > 0) {
-                    var base = res[0].innerHTML;
-                    var nTime = toSeconds($gc('duration', tinp.parentNode.parentNode)[0].innerHTML);
-                }
-                var nRes = base.match(/>(\d+).+?>(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/);
-                wRes[t++] = [tinp, tname, nTime, parseInt(nRes[1]), parseInt(nRes[2]), parseInt(nRes[3]), parseInt(nRes[4]), parseInt(nRes[5])];
+                var detailEl = tinp.parentNode.parentNode;
+                var res = $gc('resourceWrapper', detailEl);
+                if (res.length == 0) continue; // no resource block = not a trainable unit
+                var valSpans = res[0].querySelectorAll('.value');
+                if (valSpans.length < 5) continue;
+                var nTime = toSeconds($gc('duration', detailEl)[0] ? $gc('duration', detailEl)[0].textContent : '0:00:00');
+                wRes[t++] = [tinp, tname, nTime,
+                    parseInt(valSpans[0].textContent),
+                    parseInt(valSpans[1].textContent),
+                    parseInt(valSpans[2].textContent),
+                    parseInt(valSpans[3].textContent),
+                    parseInt(valSpans[4].textContent)];
                 tinp.addEventListener('keyup', resRecalc, false);
                 tinp.addEventListener('click', resRecalc, false);
             }
             var tshift = 0;
+            // Support both exact class "under_progress" and servers using different queue class names
             var upt = $xf('.//table[@class="under_progress"]', 'l', cont);
+            if (upt.length == 0) upt = Array.from(cont.querySelectorAll('table[class*="under"],[class*="trainQueue"],[class*="buildingQueue"]'));
             if (upt.length > 0) {
                 upt = upt[0];
+                // Try exact class td.dur first, then fallback to contains
                 var ts = $xf('.//td[@class="dur"]/span', 'l', upt);
-                tshift = toSeconds(ts[ts.length - 1].innerHTML);
+                if (ts.length == 0) ts = Array.from(upt.querySelectorAll('td.dur span,[class*="dur"] span'));
+                if (ts.length > 0) tshift = toSeconds(ts[ts.length - 1].innerHTML);
                 var allUC = new Object();
                 var mFL = false;
                 var ts = $xf('.//td[@class="desc"]/img', 'l', upt);
+                if (ts.length == 0) ts = Array.from(upt.querySelectorAll('td.desc img,[class*="desc"] img'));
                 for (var i = 0; i < ts.length; i++) {
                     var uclass = ts[i].getAttribute('class');
                     if (typeof (allUC[uclass]) == 'undefined') allUC[uclass] = ['', 0, 0];
