@@ -718,6 +718,8 @@
                 RB.village_PPH[10] = max[2]; RB.village_PPH[11] = max[3];
                 RB.village_PPH[12] = Math.round(Date.now() / 1000);
                 saveVCookie('vPPH', RB.village_PPH);
+                var _dbgKey = GMcookieID+'vPPH';
+                console.log("[TRBP vPPH] key="+_dbgKey+" stored="+JSON.stringify(RB_getValue(_dbgKey,"(empty)")).substring(0,200));
             }
 
             return true;
@@ -3588,11 +3590,14 @@
             var t = 0;
             var nowTime = Math.round((Date.now()) / 1000);
             var vLinks = $xf(vLinksPat, 'l');
+            console.log('[TRBP ovWar] vLinks='+vLinks.length+' vc='+villages_count+' vsw='+JSON.stringify(linkVSwitch));
             for (var vn = 0; vn < vLinks.length; vn++) {
                 var vName = $a(vLinks[vn].innerHTML, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
                 loadVCookie('vPPH', 'village_PPH', villages_id[vn]);
+                var _dk = GMcookieID+'vPPH';
+                console.log('[TRBP ovWar] vn='+vn+' vid='+villages_id[vn]+' raw='+String(RB_getValue(_dk,'(empty)')).substring(0,100)+' PPH='+JSON.stringify(RB.village_PPH));
 
                 var minLeft = Number.POSITIVE_INFINITY;
                 for (var i = 0; i < 4; i++) {
@@ -3671,11 +3676,14 @@
             var resSumm = [0, 0, 0, 0, 0];
             var nowTime = Math.round((Date.now()) / 1000);
             var vLinks = $xf(vLinksPat, 'l');
+            console.log('[TRBP ovRes] vLinks='+vLinks.length+' vc='+villages_count);
             for (var vn = 0; vn < vLinks.length; vn++) {
                 var vName = $a(vLinks[vn].innerHTML, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
                 loadVCookie('vPPH', 'village_PPH', villages_id[vn]);
+                var _dk = GMcookieID+'vPPH';
+                console.log('[TRBP ovRes] vn='+vn+' vid='+villages_id[vn]+' raw='+String(RB_getValue(_dk,'(empty)')).substring(0,100)+' PPH='+JSON.stringify(RB.village_PPH));
 
                 var allResInV = 0;
                 for (var i = 0; i < 4; i++) {
@@ -4465,9 +4473,7 @@
                         if (RB.village_dorf12[t - 1] != newCookie[t - 1]) fl = true;
                     }
                 }
-                console.log("[TRBP troops] saving newCookie="+JSON.stringify(newCookie)+" fl="+fl);
                 if (fl) saveVCookie('Dorf12', newCookie, 1);
-                console.log("[TRBP troops] Dorf12 stored="+RB_getValue('TRBPrb_Dorf12','(empty)'));
             }
             function detectTribe() {
                 // Use the game's internal variable if available
