@@ -208,6 +208,31 @@ fi
 chown -R "${SITE_USER}:${SITE_USER}" "${HTDOCS}"
 
 #####################################
+# Install Travium Update Helper
+#####################################
+log "Installing update helper from repository..."
+
+UPDATE_SRC="${HTDOCS}/travium-update"
+UPDATE_BIN="/usr/local/bin/travium-update"
+
+if [[ -f "$UPDATE_SRC" ]]; then
+    # Copy to global bin
+    cp "$UPDATE_SRC" "$UPDATE_BIN"
+    
+    # Patch the SITE_USER variable in the script to match the current installation
+    # This ensures it works even if you used a custom --user arg
+    sed -i "s/^SITE_USER=.*/SITE_USER=\"${SITE_USER}\"/" "$UPDATE_BIN"
+    
+    # Set permissions
+    chown root:root "$UPDATE_BIN"
+    chmod +x "$UPDATE_BIN"
+    
+    ok "Update helper installed to $UPDATE_BIN"
+else
+    err "travium-update not found in repository! Skipping helper installation."
+fi
+
+#####################################
 # Import DB
 #####################################
 log "Importing database maindb..."
