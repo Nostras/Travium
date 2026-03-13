@@ -129,6 +129,7 @@ class GoldHelper
 
     public function finishImmediatelyBuildings()
     {
+        if(getCustom("nopaytowin")) return null;
         $db = DB::getInstance();
         $session = Session::getInstance();
         $village = Village::getInstance();
@@ -172,6 +173,7 @@ class GoldHelper
 
     public function demolishComplete($field)
     {
+        if(getCustom("nopaytowin")) return null;
         if (Village::getInstance()->demolishBuilding($field, true, true)) {
             $config = Config::getInstance();
             if (self::decreaseGold(Session::getInstance()->getPlayerId(), $config->gold->completeDemolishGold)) {
@@ -182,6 +184,7 @@ class GoldHelper
 
     public function finishNowButton()
     {
+        if(getCustom("nopaytowin")) return null;
         $village = Village::getInstance();
         $session = Session::getInstance();
         $hasPerm = $session->checkSitterPermission(Session::SITTER_CAN_BUY_OR_SPEND_GOLD);
@@ -340,6 +343,7 @@ class GoldHelper
 
     public function renderBuyGoldButton()
     {
+        if(getCustom("serverIsFreeGold")) return null;
         $session = Session::getInstance();
         $hasPerm = $session->checkSitterPermission(Session::SITTER_CAN_BUY_OR_SPEND_GOLD);
         $text = T("inGame", "Navigation.Buy gold");
@@ -383,6 +387,7 @@ class GoldHelper
 
     public function renderBuyButton($featureKey, $coins, $wwInAvailable, $disabled = false)
     {
+        if(getCustom("serverIsFreeGold")) return null;
         $title = '';
         $text = T("PaymentWizard", "Buy");
         $isMoreProtection = substr($featureKey, 0, 14) == 'moreProtection';
@@ -597,6 +602,7 @@ class GoldHelper
 
     public function getCompleteDemolishButton()
     {
+        if(getCustom("nopaytowin")) return null;
         if (Village::getInstance()->isWW() && !getGame("allowDemolishNowInWW")) {
             return null;
         }
@@ -815,6 +821,7 @@ class GoldHelper
 
     public function getExchangeResourcesButtonByCost($cost)
     {
+        if(getCustom("nopaytowin")) return null;
         $village = Village::getInstance();
         if ($cost !== -1) {
             if ($village->isResourcesAvailable($cost)) {
@@ -929,6 +936,7 @@ class GoldHelper
 
     public function getExchangeResourcesButtonByNr($nr, $great)
     {
+        if(getCustom("nopaytowin")) return null;
         if ($error = $this->ExchangeResourcesError()) {
             return $error;
         }
