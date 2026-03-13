@@ -40,6 +40,7 @@ $config->game->useMilSeconds = $config->game->speed > 20;
 $config->game->useNanoseconds = $config->game->speed > 20000;
 $config->heroConfig->heroItemsSettings->heroIncreaseSpeed = $config->game->movement_speed_increase;
 $config->heroConfig->waterBucketsPerDay = $config->game->movement_speed_increase;
+$config->heroConfig->heroItemsSettings->heroIncreaseSpeedRate = $config->game->movement_speed_increase;
 if ($config->timers->AutoFinishTime == 0) {
     $config->game->round_length = ($config->timers->wwPlansReleaseTime - $config->game->start_time) / 86400;
 } else {
