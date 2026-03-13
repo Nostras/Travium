@@ -2156,40 +2156,40 @@ $Definition['HeroItems'] = [
     ],
     5 => [
         94 => [
-            "name" => "Remake Boots",
-            "title" => "%s+ Health At Every Day",
+            "name" => "Boots of Regeneration ",
+            "title" => "+%s HP/day",
         ],
         95 => [
-            "name" => "Health Boots",
-            "title" => "%s+ Health At Every Day",
+            "name" => "Boots of Health ",
+            "title" => "+%s HP/day",
         ],
         96 => [
-            "name" => "Repair Boots",
-            "title" => "%s+ Health At Every Day",
+            "name" => "Boots of Healing ",
+            "title" => "+%s HP/day",
         ],
         97 => [
-            "name" => "Military Boots",
-            "title" => "%s&#37;+ speed increase troops for distances of more than %s homes",
+            "name" => "Boots of the Mercenary",
+            "title" => "+%s&#37; troop speed after the first %s fields",
         ],
         98 => [
-            "name" => "Fighter Boots",
-            "title" => "%s&#37;+ speed increase troops for distances of more than %s homes",
+            "name" => "Boots of the Warrior",
+            "title" => "+%s&#37; troop speed after the first %s fields",
         ],
         99 => [
-            "name" => "Ruler Boots",
-            "title" => "%s&#37;+ speed increase troops for distances of more than %s homes",
+            "name" => "Boots of the Archon",
+            "title" => "+%s&#37; troop speed after the first %s fields",
         ],
         100 => [
-            "name" => "Small auditor",
-            "title" => "%s+ Home in time for the cavalry hero",
+            "name" => "Small Spurs",
+            "title" => "%s+ speed for mounted hero",
         ],
         101 => [
-            "name" => "auditor",
-            "title" => "%s+ Home in time for the cavalry hero",
+            "name" => "Spurs",
+            "title" => "%s+ speed for mounted hero",
         ],
         102 => [
-            "name" => "Big auditor",
-            "title" => "%s+ Home in time for the cavalry hero",
+            "name" => "Great Spurs",
+            "title" => "%s+ speed for mounted hero",
         ],
     ],
     6 => [
