@@ -2630,9 +2630,10 @@
             lastTimerP[0] = lastTimerP[1];
             RB_setValue(GMcookieID + 'next', xy);
             if (distInVilageFL) {
-                var vLinks = $xf(vLinksPat, 'l');
-                for (var vn = 0; vn < vLinks.length; vn++)
-                    distInVilage[villages_id[vn]] = vLinks[vn].innerHTML;
+                for (var vn = 0; vn < villages_count; vn++) {
+                    var _dvEl = document.querySelector('div#sidebarBoxVillagelist a[href="'+linkVSwitch[vn]+'"]');
+                    distInVilage[villages_id[vn]] = _dvEl ? (_dvEl.querySelector('span.name') || _dvEl).textContent.trim() : String(villages_id[vn]);
+                }
                 distInVilageFL = false;
             }
             ddd = $gn('y')[0].parentNode.parentNode;
@@ -3589,10 +3590,10 @@
             var newTBody = $e('TBODY');
             var t = 0;
             var nowTime = Math.round((Date.now()) / 1000);
-            var vLinks = $xf(vLinksPat, 'l');
-            console.log('[TRBP ovWar] vLinks='+vLinks.length+' vc='+villages_count+' vsw='+JSON.stringify(linkVSwitch));
-            for (var vn = 0; vn < vLinks.length; vn++) {
-                var vName = $a(vLinks[vn].innerHTML, [['href', linkVSwitch[vn]]]);
+            for (var vn = 0; vn < villages_count; vn++) {
+                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="'+linkVSwitch[vn]+'"]');
+                var _vLinkName = _vLinkEl ? (_vLinkEl.querySelector('span.name') || _vLinkEl).textContent.trim() : String(villages_id[vn]);
+                var vName = $a(_vLinkName, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
                 loadVCookie('vPPH', 'village_PPH', villages_id[vn]);
@@ -3675,10 +3676,10 @@
             var t = 0;
             var resSumm = [0, 0, 0, 0, 0];
             var nowTime = Math.round((Date.now()) / 1000);
-            var vLinks = $xf(vLinksPat, 'l');
-            console.log('[TRBP ovRes] vLinks='+vLinks.length+' vc='+villages_count);
-            for (var vn = 0; vn < vLinks.length; vn++) {
-                var vName = $a(vLinks[vn].innerHTML, [['href', linkVSwitch[vn]]]);
+            for (var vn = 0; vn < villages_count; vn++) {
+                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="'+linkVSwitch[vn]+'"]');
+                var _vLinkName = _vLinkEl ? (_vLinkEl.querySelector('span.name') || _vLinkEl).textContent.trim() : String(villages_id[vn]);
+                var vName = $a(_vLinkName, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
                 loadVCookie('vPPH', 'village_PPH', villages_id[vn]);
@@ -3734,9 +3735,10 @@
             var overviewD = $e('TABLE', [['id', allIDs[8]], ['style', 'background-color:' + rbpBckColor]]);
 
             var newTBody = $e('TBODY');
-            var vLinks = $xf(vLinksPat, 'l');
-            for (var vn = 0; vn < vLinks.length; vn++) {
-                var vName = $a(vLinks[vn].innerHTML, [['href', linkVSwitch[vn]]]);
+            for (var vn = 0; vn < villages_count; vn++) {
+                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="'+linkVSwitch[vn]+'"]');
+                var _vLinkName = _vLinkEl ? (_vLinkEl.querySelector('span.name') || _vLinkEl).textContent.trim() : String(villages_id[vn]);
+                var vName = $a(_vLinkName, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
 
@@ -5212,6 +5214,7 @@
                     m = 2;
                     break;
                 case 10:
+                case 20: 
                     m = 4;
                     break;
             }
