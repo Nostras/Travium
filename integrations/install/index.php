@@ -354,6 +354,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 '$config->game->protection_time = ' . ((int)$input['protectionHours'] * 3600) . ';',
                 '$config->extraSettings->generalOptions->finishTraining->enabled = ' . ($input['instantFinishTraining'] ? 'true' : 'false') . ';',
                 '$config->extraSettings->generalOptions->buyAdventure->enabled = ' . ($input['buyAdventure'] ? 'true' : 'false') . ';',
+                // In here so the user can disable this 
+                '$config->custom->nopaytowin = true;',
+                '$config->custom->serverIsFreeGold = true;'
             ];
             file_put_contents($includePath . 'config.custom.php', implode("\n", $configCustom) . "\n");
 

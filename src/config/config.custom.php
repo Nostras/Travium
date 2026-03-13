@@ -65,13 +65,13 @@ $config->masterBuilder->maxTasksInNoneWonder = 10;
     }
 }
 {
-    $config->extraSettings->addFarms->enabled = true;
-    $config->extraSettings->generalOptions->increaseStorage->enabled = true;
-    $config->extraSettings->generalOptions->finishTraining->enabled = true;
-    $config->extraSettings->generalOptions->fasterTraining->enabled = true;
-    $config->extraSettings->generalOptions->smithyUpgradeAllToMax->enabled = true;
-    $config->extraSettings->generalOptions->academyResearchAll->enabled = true;
-    $config->extraSettings->generalOptions->buyAdventure->enabled = true;
+    $config->extraSettings->addFarms->enabled = false;
+    $config->extraSettings->generalOptions->increaseStorage->enabled = false;
+    $config->extraSettings->generalOptions->finishTraining->enabled = false;
+    $config->extraSettings->generalOptions->fasterTraining->enabled = false;
+    $config->extraSettings->generalOptions->smithyUpgradeAllToMax->enabled = false;
+    $config->extraSettings->generalOptions->academyResearchAll->enabled = false;
+    $config->extraSettings->generalOptions->buyAdventure->enabled = false;
     {
         $moreProtectionStatus = !$config->dynamic->WWPlansReleased;
         foreach ($config->extraSettings->moreProtection->packages as &$pack) {
@@ -122,23 +122,23 @@ $config->bonus->bonusGoldTopAllianceCount = 5;
 
 {
 //these are for 5000x servers and will be multiplied for other speeds
-    $config->extraSettings->buyBuildings['enabled'] = true;    
+    $config->extraSettings->buyBuildings['enabled'] = false;    
     
-    $config->extraSettings->smithyMaxLevel->enabled = true;
-    $config->extraSettings->upgradeToMaxLevel->enabled = true;
-    $config->extraSettings->upgradeStorageToMaxLevel->enabled = true;
+    $config->extraSettings->smithyMaxLevel->enabled = false;
+    $config->extraSettings->upgradeToMaxLevel->enabled = false;
+    $config->extraSettings->upgradeStorageToMaxLevel->enabled = false;
 
 
-	$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo5']->enabled = true;
+	$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo5']->enabled = false;
     if ($config->game->speed > 300) {
-		$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo20']->enabled = true;
+		$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo20']->enabled = false;
     }
     if ($config->game->speed > 500) {
-		$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo30']->enabled = true;
+		$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo30']->enabled = false;
     }
 
-    $config->extraSettings->buyResources['enabled'] = true;
-    $config->extraSettings->buyAnimal['enabled'] = true;
+    $config->extraSettings->buyResources['enabled'] = false;
+    $config->extraSettings->buyAnimal['enabled'] = false;
 }
 if ($config->game->speed <= 1000) {
     $config->extraSettings->buyResources['enabled'] = false;
