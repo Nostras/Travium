@@ -53,13 +53,14 @@ class AdventureModel
         $db = DB::getInstance();
         $interval = 1 * 3600;
         $now = time();
-        if(getGameSpeed() <= 2){
-            $expire = 144 * 3600;
-        } else if(getGameSpeed() <= 10) {
-            $expire = 72 * 3600;
-        } else {
-            $expire = max(432000 / getGameSpeed(), 18000);
-        }
+        // if(getGameSpeed() <= 2){
+        //     $expire = 144 * 3600;
+        // } else if(getGameSpeed() <= 10) {
+        //     $expire = 72 * 3600;
+        // } else {
+        //     $expire = max(432000 / getGameSpeed(), 18000);
+        // }
+        $expire = $this->getAdventureExpireTime();
         $expire_interval = max(86400 / getGameSpeed(), 1800);
         $find = $db->query("SELECT id, total_adventures, last_adventure_time, signupTime FROM users WHERE id>1 AND access=1 AND last_adventure_time <= " . (time() - $interval) . " ORDER BY last_adventure_time ASC LIMIT 100");
         while ($row = $find->fetch_assoc()) {
