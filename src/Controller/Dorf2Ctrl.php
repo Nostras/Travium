@@ -76,6 +76,20 @@ class Dorf2Ctrl extends GameCtrl
         if (!isset($_GET['id'])) {
             if ((int)$_GET['a'] === 0) {
                 $village->removeBuilding((int)$_GET['d']);
+            } else if (isset($_GET['q']) && (int)$_GET['q'] === 1) {
+                // Queue-all: fill normal slot(s), then all available master builder slots
+                $field = (int)$_GET['a'];
+                $village->upgradeBuilding($field, false); // normal slot
+                $village->upgradeBuilding($field, false); // plus slot (fails silently if not available)
+                $config = Config::getInstance();
+                $maxMaster = $village->isWW()
+                    ? $config->masterBuilder->maxTasksInWonder
+                    : $config->masterBuilder->maxTasksInNoneWonder;
+                for ($i = 0; $i < $maxMaster; $i++) {
+                    if ($village->upgradeBuilding($field, true) === false) {
+                        break;
+                    }
+                }
             } else {
                 $village->upgradeBuilding($_GET['a'], isset($_GET['b']) && (int)$_GET['b'] === 1);
             }
