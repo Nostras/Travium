@@ -303,6 +303,71 @@ class BuildCtrl extends GameCtrl
         return PHPBatchView::render("build/buildingWrapper", $data);
     }
 
+    /**
+     * Build the "queue all" button HTML that attempts to queue this building
+     * into every available slot (normal → plus → master builder) in one click.
+     *
+     * Returns null when there is nothing more to queue (building at max level,
+     * or every slot—including all master-builder slots—is already occupied by
+     * this building).
+     */
+    private function getQueueAllButton($item_id, $fieldId)
+    {
+        $village = Village::getInstance();
+        $config  = Config::getInstance();
+
+        // If the building can't be upgraded at all, don't show the button.
+        $currentLevel = $village->getField($fieldId)['level'];
+        $maxLevel     = Formulas::buildingMaxLvl($item_id, $village->isCapital());
+        if ($currentLevel >= $maxLevel) {
+            return null;
+        }
+
+        // Count how many upgrades are already queued for this field across
+        // both normal and master queues.
+        $alreadyQueued = 0;
+        foreach ($village->onLoadBuildings['normal'] as $task) {
+            if ($task['building_field'] == $fieldId) {
+                $alreadyQueued++;
+            }
+        }
+        foreach ($village->onLoadBuildings['master'] as $task) {
+            if ($task['building_field'] == $fieldId) {
+                $alreadyQueued++;
+            }
+        }
+
+        // Determine total slots available: normal (1 or 2 with plus) + master builder slots.
+        $hasPlus       = $this->session->hasPlus();
+        $normalSlots   = $hasPlus ? 2 : 1;
+        $masterSlots   = $village->isWW()
+            ? $config->masterBuilder->maxTasksInWonder
+            : $config->masterBuilder->maxTasksInNoneWonder;
+        $totalSlots    = $normalSlots + $masterSlots;
+
+        // Clamp to what the building can actually absorb before hitting max level.
+        $remainingLevels = $maxLevel - ($currentLevel + $village->getField($fieldId)['upgrade_state'] + $alreadyQueued);
+        $totalSlots      = min($totalSlots, $remainingLevels + $alreadyQueued);
+
+        // Nothing more to queue.
+        if ($alreadyQueued >= $totalSlots) {
+            return null;
+        }
+
+        $pageNamePostfix = ($item_id <= 4 ? '1' : '2');
+        $link = 'dorf' . $pageNamePostfix . '.php?a=' . $fieldId . '&q=1&c=' . $this->session->getChecker();
+
+        return getButton(
+            [
+                'type'    => 'button',
+                'class'   => 'green build queueAll',
+                'onclick' => "window.location.href = '$link'; return false;",
+            ],
+            ['data' => ['class' => 'green build queueAll']],
+            T('Buildings', 'queueAllUpgrades')
+        );
+    }
+
     private function getActionText($item_id = 0)
     {
         $result = [
@@ -311,6 +376,7 @@ class BuildCtrl extends GameCtrl
             'plus' => null,
             'noResources' => false,
             'extraModuleButton' => null,
+            'queueAll' => null,
         ];
         $village = Village::getInstance();
         $fieldId = $this->selectedBuildingIndex;
@@ -415,9 +481,15 @@ class BuildCtrl extends GameCtrl
         if ($workerResult['isBusy']) {
             //$result['main'] = '<span class="errorMessage">' . T("Buildings", "workersBusy") . '</span>';
             $result['main'] = null;
+            if (!$new) {
+                $result['queueAll'] = $this->getQueueAllButton($item_id, $fieldId);
+            }
             goto outReturn;
         } else {
             $result['main'] = $btn;
+            if (!$new) {
+                $result['queueAll'] = $this->getQueueAllButton($item_id, $fieldId);
+            }
             goto outReturn;
         }
         outReturn:
@@ -749,4 +821,4 @@ class BuildCtrl extends GameCtrl
             $contract['valueTable'] .= '<tr class="nextPossible"><th>' . T("Buildings", $item_id . ".next_prod") . ' ' . $nextLevel . ':</th><td><span class="number">' . number_format_x($value) . '</span> ' . T("Buildings", $item_id . ".unit") . '</td></tr>';
         }
     }
-} 
+}

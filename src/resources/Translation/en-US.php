@@ -500,6 +500,7 @@ $Definition['Buildings']['maxMasterBuilderReached'] = 'You can have just %s buil
 $Definition['Buildings']['enoughResourcesAt'] = 'Enough resources on %s';
 $Definition['Buildings']['constructBuilding'] = 'Construct building';
 $Definition['Buildings']['upgradeBuilding'] = 'Upgrade to level %s';
+$Definition['Buildings']['queueAllUpgrades'] = 'Queue all upgrades';
 $Definition['Buildings']['waitLoop'] = 'Wait loop';
 $Definition['Buildings']['workersBusy'] = 'The workers are already at work.';
 $Definition['Buildings']['enoughResourcesAtNever'] = 'Your crop production is negative. So you\'ll not be able to have enough resources.';
