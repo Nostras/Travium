@@ -468,7 +468,7 @@
         function $am(Elem, mElem) { if (mElem !== undefined) for (var i = 0; i < mElem.length; i++) { if (typeof (mElem[i]) == 'object') Elem.appendChild(mElem[i]); else Elem.appendChild($t(mElem[i])); } return Elem; }
         function $em(nElem, mElem, att) { var Elem = $e(nElem, att); return $am(Elem, mElem); }
         function offsetPosition(el) { var oL = 0, oT = 0; do { oL += el.offsetLeft; oT += el.offsetTop; } while (el = el.offsetParent); return [oL, oT]; }
-        function toNumber(aValue) { return parseInt(aValue.replace(/\W/g, "").replace(/\s/g, "")); }
+        function toNumber(aValue) { if (aValue === null || aValue === undefined) return 0; var s = String(aValue); return parseInt(s.replace(/\W/g, "").replace(/\s/g, "")) || 0; }
         function isNumeric(n) { return !isNaN(parseFloat(n)) && isFinite(n); }
         function insertAfter(node, rN) { rN.parentNode.insertBefore(node, rN.nextSibling); }
         function ajaxNDIV(aR) { var ad = $ee('div', aR.responseText, [['style', 'display:none;']]); return ad; }
@@ -2006,7 +2006,67 @@
         function marketSummReal() {
             if (RB.Setup[10] == 0) return;
             var merchantsOnTheWay = $g('marketplaceSendResources');
-            if (!merchantsOnTheWay) return;
+            // Legacy market fallback: find by table.traders parent
+            var isLegacy = false;
+            if (!merchantsOnTheWay) {
+                var legacyTables = cont.querySelectorAll('table.traders');
+                if (legacyTables.length > 0) {
+                    isLegacy = true;
+                    merchantsOnTheWay = legacyTables[0].parentNode;
+                } else return;
+            }
+            if (isLegacy) {
+                // Legacy PHP market structure:
+                // <table class="traders"><thead>sender/dest</thead><tbody>
+                //   <tr><th>Arrival</th><td><span class="timer" value="NNN">H:MM:SS</span></td></tr>
+                //   <tr class="res"><th>Resources</th><td>...<div class="repeat">3×</div>
+                //     <div class="resourceWrapper">...<span class="value">N</span>×4</div></td></tr>
+                // </tbody></table>
+                if (!mSInit) { initRes = true; getResources(); progressbar_ReInit(); }
+                addSpeedAndRTSend(merchantsOnTheWay, true);
+                resourceCalculatorInit();
+                var tables = cont.querySelectorAll('table.traders');
+                var lastTimeToGo = 0;
+                for (var i = 0; i < tables.length; i++) {
+                    var tbl = tables[i];
+                    var tbody = tbl.querySelector('tbody');
+                    if (!tbody) continue;
+                    // Timer: prefer value attribute (seconds), fall back to text
+                    var timerEl = tbody.querySelector('span.timer');
+                    if (!timerEl) continue;
+                    var timeToGo = parseInt(timerEl.getAttribute('value') || '0') || toSeconds(timerEl.textContent);
+                    if (timeToGo <= 0) continue;
+                    // Resources
+                    var valSpans = tbody.querySelectorAll('.resourceWrapper .value');
+                    if (valSpans.length < 4) continue;
+                    var incomingRes = [
+                        toNumber(valSpans[0].textContent),
+                        toNumber(valSpans[1].textContent),
+                        toNumber(valSpans[2].textContent),
+                        toNumber(valSpans[3].textContent)
+                    ];
+                    // Repeat count (e.g. "3×" means this same shipment arrives 3 times)
+                    var repeatEl = tbody.querySelector('.repeat');
+                    var repeatN = 1;
+                    if (repeatEl) {
+                        var rm = repeatEl.textContent.replace(/[^0-9]/g, '');
+                        if (rm) repeatN = parseInt(rm);
+                    }
+                    // Call resourceCalculator once per repeat, each at +travelTime interval
+                    // travelTime = timeToGo of first shipment (all repeats same travel time)
+                    for (var r = 0; r < repeatN; r++) {
+                        var tArr = timeToGo + r * timeToGo; // first at timeToGo, next at 2×, etc.
+                        // Remove existing calc rows to avoid duplicates
+                        var existCalc = tbl.parentNode.querySelectorAll('div.' + allIDs[20]);
+                        for (var ec = 0; ec < existCalc.length; ec++) existCalc[ec].parentNode.removeChild(existCalc[ec]);
+                        resourceCalculator(tbody, tArr, incomingRes.slice(), 0);
+                    }
+                    lastTimeToGo = timeToGo + (repeatN - 1) * timeToGo;
+                }
+                if (RB.Setup[10] > 1) resourceCalculatorSumm(merchantsOnTheWay, lastTimeToGo);
+                if (RB.Setup[10] > 2) redLinesSumm(merchantsOnTheWay);
+                return;
+            }
             var merchantInOut = $gc('group expanded', merchantsOnTheWay);
             if (merchantInOut.length == 0) return;
             if (!mSInit) {
@@ -2247,7 +2307,7 @@
             }
 
             if (tType == 0) {
-                var newdiv = $e('div', [['class', 'res'], ['style', 'display: flex; align-items: center; gap: 3px; margin-bottom: 5px;']]);
+                var newdiv = $e('div', [['class', allIDs[20]], ['style', 'display: flex; align-items: center; gap: 3px; margin-bottom: 5px; background-color:#F8FFEE; padding: 2px 4px;']]);
                 newdiv.innerHTML = textIncome;
                 newdiv.appendChild(newFText);
                 tObj.parentNode.appendChild(newdiv);
@@ -7669,6 +7729,7 @@
         /************************** end test zone ****************************/
 
         // start script
+        console.log('hello!');
         if (!$g('l1')) {
             console.log('!?');
             return;
@@ -7867,7 +7928,7 @@
         var sidebar = $g('sidebarBoxActiveVillage') || $g('sidebarBoxVillagelist');
         if (sidebar) {
             // Your server uses sidebarBoxVillagelist, so we hook into that
-            // console.log("[TTQ Debug] Hooking into sidebar: " + sidebar.id);
+            console.log("[TTQ Debug] Hooking into sidebar: " + sidebar.id);
         }
         observer.observe($g('sidebarAfterContent'), { childList: true, subtree: true });
         if (RB.Setup[14] > 0) showDorf1();
