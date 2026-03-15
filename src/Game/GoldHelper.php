@@ -602,7 +602,7 @@ class GoldHelper
 
     public function getCompleteDemolishButton()
     {
-        if(getCustom("nopaytowin")) return null;
+        // if(getCustom("nopaytowin")) return null;
         if (Village::getInstance()->isWW() && !getGame("allowDemolishNowInWW")) {
             return null;
         }
