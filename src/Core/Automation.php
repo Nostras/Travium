@@ -415,6 +415,14 @@ class Automation
         $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (deleted=1 AND time < ($halfDay))) LIMIT 20000");
         if (getCustom("removeReports")) {
             $XY = time() - (int)(getCustom("removeReports") / getGameSpeed());
+            logError(sprintf(
+                '[cleanupServer] removeReports: config=%s, gameSpeed=%s, effectiveSeconds=%s, cutoff=%s (%s ago)',
+                getCustom("removeReports"),
+                getGameSpeed(),
+                (int)(getCustom("removeReports") / getGameSpeed()),
+                $XY,
+                gmdate('H:i:s', time() - $XY)
+            ));
             $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (archive=0 AND time < $XY)) LIMIT 20000");
         }
         $types = implode(",", [
@@ -423,6 +431,13 @@ class Automation
         ]);
         if (getCustom("removeReportsBelow30Percent")) {
             $reportWindow = time() - max(600, (int)(86400 / getGameSpeed()));
+            logError(sprintf(
+                '[cleanupServer] removeReportsBelow30: gameSpeed=%s, effectiveSeconds=%s, cutoff=%s (%s ago)',
+                getGameSpeed(),
+                max(600, (int)(86400 / getGameSpeed())),
+                $reportWindow,
+                gmdate('H:i:s', time() - $reportWindow)
+            ));
             $db->query("DELETE FROM ndata WHERE non_deletable=0 AND type IN($types) AND time < $reportWindow AND losses <= 30 AND archive=0 LIMIT 20000");
         }
         $db->query("DELETE FROM mdata WHERE viewed=1 AND time < " . (time() - 2 * 86400));
