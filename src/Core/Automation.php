@@ -413,17 +413,10 @@ class Automation
         $db->query("DELETE FROM surrounding WHERE time < " . (time() - 3 * 86400));
         $db->query("DELETE FROM log_ip WHERE time < " . (time() - 15 * 86400));
         $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (deleted=1 AND time < ($halfDay))) LIMIT 20000");
-        $removeReportsConfig = getCustom("removeReports");
-        $gameSpeedVal = getGameSpeed();
-        $XY = $removeReportsConfig ? time() - (int) ($removeReportsConfig / $gameSpeedVal) : null;
-        logError(sprintf(
-            '[cleanupServer] removeReports=%s, gameSpeed=%s, XY=%s, removeReportsBelow30=%s',
-            var_export($removeReportsConfig, true),
-            var_export($gameSpeedVal, true),
-            var_export($XY, true),
-            var_export(getCustom("removeReportsBelow30Percent"), true)
-        ));
-        if ($removeReportsConfig) {
+        if (getCustom("removeReports")) {
+            // Minimum 7 days real-world retention regardless of speed; sqrt scaling for higher base values
+            $scaledRetention = max(604800, (int)(getCustom("removeReports") / sqrt(getGameSpeed())));
+            $XY = time() - $scaledRetention;
             $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (archive=0 AND time < $XY)) LIMIT 20000");
         }
         $types = implode(",", [
@@ -431,14 +424,9 @@ class Automation
             NoticeHelper::TYPE_WON_DEFENSE_WITHOUT_LOSSES,
         ]);
         if (getCustom("removeReportsBelow30Percent")) {
-            $reportWindow = time() - max(600, (int) (86400 / getGameSpeed()));
-            logError(sprintf(
-                '[cleanupServer] removeReportsBelow30: gameSpeed=%s, effectiveSeconds=%s, cutoff=%s (%s ago)',
-                getGameSpeed(),
-                max(600, (int) (86400 / getGameSpeed())),
-                $reportWindow,
-                gmdate('H:i:s', time() - $reportWindow)
-            ));
+            // 2 days base, sqrt scaled, minimum 24h real-world retention
+            $scaledBelow30 = max(86400, (int)(172800 / sqrt(getGameSpeed())));
+            $reportWindow = time() - $scaledBelow30;
             $db->query("DELETE FROM ndata WHERE non_deletable=0 AND type IN($types) AND time < $reportWindow AND losses <= 30 AND archive=0 LIMIT 20000");
         }
         $db->query("DELETE FROM mdata WHERE viewed=1 AND time < " . (time() - 2 * 86400));
