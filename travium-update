@@ -61,45 +61,13 @@ fi
 chown -R "${SITE_USER}:${SITE_USER}" "$HTDOCS"
 
 #####################################
-# 4. Restart Automation Engine
+# 4. Restart Automation Engine(s)
 #####################################
-log "Restarting automation engine..."
-
-# Find all engine parent PIDs (session leaders, state Ss)
-ENGINE_PIDS=$(pgrep -u "$SITE_USER" -f "engine.php" || true)
-
-if [[ -n "$ENGINE_PIDS" ]]; then
-    # Kill only the session leaders — children will follow via SIGTERM handler
-    for PID in $ENGINE_PIDS; do
-        STAT=$(ps -o stat= -p "$PID" 2>/dev/null || true)
-        if [[ "$STAT" == *s* ]]; then
-            log "Sending SIGTERM to engine parent PID $PID..."
-            kill "$PID" || true
-        fi
-    done
-
-    # Wait up to 15 seconds for all engine processes to exit
-    WAIT=0
-    while pgrep -u "$SITE_USER" -f "engine.php" > /dev/null && [[ $WAIT -lt 15 ]]; do
-        sleep 1
-        WAIT=$((WAIT + 1))
-    done
-
-    if pgrep -u "$SITE_USER" -f "engine.php" > /dev/null; then
-        log "Processes still alive after 15s, sending SIGKILL..."
-        pkill -9 -u "$SITE_USER" -f "engine.php" || true
-        sleep 2
-    fi
-
-    ok "Engine stopped."
-fi
-
-# Discover all server engine.php paths and restart each
-for ENGINE_PATH in "$HTDOCS"/servers/*/include/engine.php; do
-    [[ -f "$ENGINE_PATH" ]] || continue
-    log "Starting engine: $ENGINE_PATH"
-    su - "$SITE_USER" -s /bin/bash -c "nohup /usr/bin/php7.3 '$ENGINE_PATH' > /dev/null 2>&1 &"
-    ok "Started: $ENGINE_PATH"
+log "Restarting Travium engine(s)..."
+for SERVICE in $(systemctl list-units --type=service --all | grep -oP 'travium@\S+\.service'); do
+    log "Restarting $SERVICE..."
+    systemctl restart "$SERVICE"
+    ok "$SERVICE restarted."
 done
 
 ok "Update complete! Only the latest backup is kept in $BACKUP_DIR"
