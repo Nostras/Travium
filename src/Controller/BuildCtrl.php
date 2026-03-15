@@ -474,6 +474,9 @@ class BuildCtrl extends GameCtrl
         if (!$village->isResourcesAvailable($cost)) {
             $result['noResources'] = true;
             $result['main'] = $village->calcWhenResourcesAreAvailable($cost, TRUE);
+            if (!$new) {
+                $result['queueAll'] = $this->getQueueAllButton($item_id, $fieldId);
+            }
             goto outReturn;
         }
         $btn = getButton(["type" => "button", "class" => "green " . ($new ? 'new' : 'build'), "onclick" => "window.location.href = '$link'; return false;",], ['data' => ["class" => "green " . ($new ? 'new' : 'build')]], $lvl == 1 && $item_id > 4 ? T("Buildings", "constructBuilding") : sprintf(T("Buildings", "upgradeBuilding"), $lvl));
