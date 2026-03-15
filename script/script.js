@@ -1472,26 +1472,14 @@
                     if (checkRes[i].checked) mhRowLinkP(i);
             }
             var extNegat = 0;
-            function mhRowLinkMem(ratio) {
+            function mhRowLinkMemCalc() {
+                // Returns [totalNeeded[4], shipmentsNeeded] without writing to inputs
                 loadVCookie('vPPH', 'village_PPH', RB.wantsMem[4]);
-                if (RB.wantsMem[4] == 0) return;
-                var arXY = id2xy(RB.wantsMem[4]);
-                var cxEl = ($gc('coordinateX', basee)[0] && $gt('input', $gc('coordinateX', basee)[0])[0]) || $gn('x')[0];
-                var cyEl = ($gc('coordinateY', basee)[0] && $gt('input', $gc('coordinateY', basee)[0])[0]) || $gn('y')[0];
-                var coordX = cxEl ? parseInt(cxEl.value || cxEl.getAttribute("value") || NaN) : NaN;
-                var coordY = cyEl ? parseInt(cyEl.value || cyEl.getAttribute("value") || NaN) : NaN;
-                if (!isNaN(coordX) && !isNaN(coordY) && (arXY[0] != coordX || arXY[1] != coordY)) { sendResourses(RB.wantsMem[4]); return; }
-                //var coordXInput = $gt('input',$gc('coordinateX',basee)[0])[0];
-                //var coordYInput = $gt('input',$gc('coordinateY',basee)[0])[0];
-                //var coordX = parseInt(coordXInput.getAttribute("value"));
-                //var coordY = parseInt(coordYInput.getAttribute("value"));
-                //if (arXY[0] != coordX) updateInput(coordXInput,arXY[0]);
-                //if (arXY[1] != coordY) updateInput(coordYInput,arXY[1]);
                 var htR = getTTime(calcDistance(RB.wantsMem[4], village_aid), MTime[parseInt(RB.Setup[2])] * sM, 0, 0);
                 var ht = parseInt(RB.wantsMem[9]) < htR ? htR - parseInt(RB.wantsMem[9]) : 0;
-                for (var i = 0; i < 4; i++) { updateInput(rxI[i], 0); } //reset values so they will not overflow
+                var totalNeeded = [0, 0, 0, 0];
                 for (var i = 0; i < 4; i++) {
-                    var wantRes = Math.ceil(parseInt((RB.wantsMem[i]) - RB.village_PPH[i] / 3600 * ht) / ratio);
+                    var wantRes = Math.ceil(parseInt(RB.wantsMem[i]) - RB.village_PPH[i] / 3600 * ht);
                     if (RB.village_PPH[i] < 0 && ht > 0) {
                         var deltaTime = RB.village_PPH[12] > 0 ? Math.round((Date.now()) / 1000) - parseInt(RB.village_PPH[12]) : 0;
                         var leftResInV = Math.floor(RB.village_PPH[i] / 3600 * (deltaTime + ht) + RB.village_PPH[i + 4]);
@@ -1500,19 +1488,46 @@
                             if (nowResInV < 0) nowResInV = 0;
                             wantRes = nowResInV + parseInt(RB.wantsMem[i]);
                         }
-                        var minLeft = prompt(gtext("consnegat"), 10);
-                        if (minLeft == null) minLeft = 0;
-                        if (minLeft == 0) wantRes = RB.wantsMem[i];
-                        else {
-                            extNegat = Math.ceil(RB.village_PPH[i] / 3600 * parseInt(minLeft) * 60);
-                            wantRes -= extNegat;
-                        }
                     }
                     if (wantRes < 0) wantRes = 0;
-                    if (checkRes[i].checked) updateInput(rxI[i], wantRes < resNow[i] ? wantRes : resNow[i]);
+                    totalNeeded[i] = wantRes;
                 }
+                var totalRes = 0;
+                for (var i = 0; i < 4; i++) totalRes += Math.min(totalNeeded[i], resNow[i]);
+                var shipmentsNeeded = (maxM > 0 && maxC > 0) ? Math.ceil(Math.ceil(totalRes / maxC) / maxM) : 1;
+                if (shipmentsNeeded < 1) shipmentsNeeded = 1;
+                return { needed: totalNeeded, shipments: shipmentsNeeded };
+            }
+            function mhRowLinkMemSmart() {
+                if (RB.wantsMem[4] == 0) return;
+                var arXY = id2xy(RB.wantsMem[4]);
+                var cxEl = ($gc('coordinateX', basee)[0] && $gt('input', $gc('coordinateX', basee)[0])[0]) || $gn('x')[0];
+                var cyEl = ($gc('coordinateY', basee)[0] && $gt('input', $gc('coordinateY', basee)[0])[0]) || $gn('y')[0];
+                var coordX = cxEl ? parseInt(cxEl.value || cxEl.getAttribute("value") || NaN) : NaN;
+                var coordY = cyEl ? parseInt(cyEl.value || cyEl.getAttribute("value") || NaN) : NaN;
+                if (!isNaN(coordX) && !isNaN(coordY) && (arXY[0] != coordX || arXY[1] != coordY)) { sendResourses(RB.wantsMem[4]); return; }
+                var calc = mhRowLinkMemCalc();
+                var n = calc.shipments;
+                for (var i = 0; i < 4; i++) { updateInput(rxI[i], 0); }
+                for (var i = 0; i < 4; i++) {
+                    if (checkRes[i].checked) {
+                        var toSend = Math.ceil(calc.needed[i] / n);
+                        updateInput(rxI[i], Math.min(toSend, resNow[i]));
+                    }
+                }
+                if (memShipLabel) memShipLabel.textContent = n > 1 ? ' ×' + n : '';
                 mhRowUpdate();
-                //sendResourses( RB.wantsMem[4] );
+            }
+            function mhRowLinkMem(ratio) { mhRowLinkMemSmart(); } // kept for compatibility
+            function updateMemBtn() {
+                var hasM = RB.wantsMem[4] > 0;
+                memL.style.opacity = hasM ? '1' : '0.35';
+                memL.style.pointerEvents = hasM ? '' : 'none';
+                memL.style.cursor = hasM ? 'pointer' : 'default';
+                if (hasM && memShipLabel) {
+                    var calc = mhRowLinkMemCalc();
+                    memShipLabel.textContent = calc.shipments > 1 ? ' ×' + calc.shipments : '';
+                }
             }
             var mcFL = true;
             function rEL() {
@@ -1651,6 +1666,7 @@
                 maxRM.value = maxM;
                 maxRC.value = maxM * maxC;
                 mhRowUpdate();
+                updateMemBtn();
             }
             function checkMerchants() {
                 // Support both T4 standard (class=summary/denominator) and legacy (merchantsAvailable span)
@@ -1744,12 +1760,11 @@
 
             mhRowUpdate();
 
-            var memL = $a('M', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
-            memL.addEventListener('click', function () { mhRowLinkMem(1); }, false);
-            var memL2 = $a('M/2', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
-            memL2.addEventListener('click', function () { mhRowLinkMem(2); }, false);
-            var memL3 = $a('M/3', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
-            memL3.addEventListener('click', function () { mhRowLinkMem(3); }, false);
+            var memL = $a('M', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;font-weight:bold;']]);
+            var memShipLabel = document.createTextNode('');
+            memL.appendChild(memShipLabel);
+            memL.addEventListener('click', function () { mhRowLinkMemSmart(); }, false);
+            updateMemBtn();
             var refEq = $a('=', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
             refEq.addEventListener('click', mhRowsLinkEq, false);
             var refP = $a('%', [['href', jsVoid], ['style', 'font-size:15px;margin:0 3px;']]);
@@ -1758,8 +1773,6 @@
             refCl.addEventListener('click', mhRowsLinkCl, false);
             var newDiv = $e('div', [['style', 'display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:4px 0;']]);
             newDiv.appendChild(memL);
-            newDiv.appendChild(memL2);
-            newDiv.appendChild(memL3);
             newDiv.appendChild(refEq);
             newDiv.appendChild(refP);
             newDiv.appendChild(refCl);
@@ -5214,7 +5227,6 @@
                     m = 2;
                     break;
                 case 10:
-                case 20: 
                     m = 4;
                     break;
             }
