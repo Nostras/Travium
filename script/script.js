@@ -1186,7 +1186,7 @@
         /************************** build pages ****************************/
 
         // begin Travian - add needed resources automatically under build/upgrade link
-        function needed_show(base) {
+        function needed_show(baseEl) {
             function saveWantsMem(wantsResM) {
                 var noplace = '';
                 var ofFL = false;
@@ -1208,7 +1208,21 @@
                 return timerB[j].obj;
             }
 
-            var neededRes = base.replace(/,(?=\d{3})/g, '').match(/>(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/);
+            // Extract costs from DOM directly (handles Unicode directional marks & comma formatting)
+            var _costEls = baseEl.querySelectorAll('.inlineIcon .value, .value, span[class*="val"]');
+            var _costs = [];
+            for (var _ci = 0; _ci < _costEls.length && _costs.length < 4; _ci++) {
+                var _cv = toNumber(_costEls[_ci].textContent);
+                if (_cv > 0) _costs.push(_cv);
+            }
+            // Fallback: strip Unicode control chars then regex innerHTML
+            if (_costs.length < 4) {
+                var _clean = baseEl.innerHTML.replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').replace(/,(?=\d{3})/g, '');
+                var _m = _clean.match(/>(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/);
+                if (_m) _costs = [parseInt(_m[1]), parseInt(_m[2]), parseInt(_m[3]), parseInt(_m[4])];
+            }
+            if (_costs.length < 4) return $e('DIV');
+            var neededRes = [null, _costs[0], _costs[1], _costs[2], _costs[3]];
             wfl = false;
             var wantsResMem = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             var wantsResMemP = RB.wantsMem.slice();
@@ -1265,28 +1279,25 @@
             var baseWrap = $xf('.//div[contains(@class,"resourceWrapper")]', 'l', cont);
             for (var i = 0; i < baseWrap.length; i++) {
                 var base = baseWrap[i];
-                if (! />(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/.test(base.innerHTML.replace(/,(?=\d{3})/g, ''))) continue;
-                var newD = needed_show(base.innerHTML);
-                if (base.parentNode.classList.contains("contractWrapper") || base.parentNode.classList.contains("information") || base.parentNode.classList.contains("details") || (/hero/.test(crtPath))) {
-                    addNPC(base.parentNode);
-                    if (!wfl && base.parentNode.getAttribute("class") == "information") continue;
-                    if (!wfl && base.parentNode.getAttribute("class") == "details") continue;
-                    base.parentNode.insertBefore(newD, base.nextSibling);
-                    var tr = base.parentNode.parentNode.parentNode;
-                    if (wfl && tr.classList.contains("action")) {
-                        offsetHeight = tr.firstElementChild.offsetHeight;
-                        if (offsetHeight > 150) tr.style.height = offsetHeight + "px";
-                    }
+                // Skip wrappers without 4 resource cost values (e.g. % bars, icons)
+                var _costCheck = base.querySelectorAll('.inlineIcon .value, .value, span[class*="val"]');
+                var _costCount = 0;
+                for (var _ci = 0; _ci < _costCheck.length; _ci++) { if (toNumber(_costCheck[_ci].textContent) > 0) _costCount++; }
+                if (_costCount < 4) continue;
+                var newD = needed_show(base);
+                var pn = base.parentNode;
+                var pClass = pn.getAttribute('class') || '';
+                var isUpgradeCtx = pn.classList.contains("contractWrapper") || pn.classList.contains("information") || pn.classList.contains("details") || (/hero/.test(crtPath));
+                if (!isUpgradeCtx) continue;
+                addNPC(pn);
+                if (!wfl && (pClass == "information" || pClass == "details")) continue;
+                pn.insertBefore(newD, base.nextSibling);
+                var tr = pn.parentNode.parentNode;
+                if (wfl && tr.classList && tr.classList.contains("action")) {
+                    offsetHeight = tr.firstElementChild.offsetHeight;
+                    if (offsetHeight > 150) tr.style.height = offsetHeight + "px";
                 }
             }
-
-            var clk = $gc('clock_medium', cont);
-            for (var i = 0; i < clk.length; i++) {
-                if (! />(\d+:\d+:\d+)/.test(clk[i].parentNode.innerHTML)) continue;
-                var needTime = (clk[i].parentNode.innerHTML).match(/>(\d+:\d+:\d+)/)[1];
-                clk[i].parentNode.title = RB.dictionary[14] + formatTime(absTime(toSeconds(needTime)), 4);
-            }
-
             lastTimerB = timerB.length;
         }
         // end Travian - add needed resources automatically under build/upgrade link
@@ -7658,7 +7669,6 @@
         /************************** end test zone ****************************/
 
         // start script
-        console.log('hello!');
         if (!$g('l1')) {
             console.log('!?');
             return;
@@ -7857,7 +7867,7 @@
         var sidebar = $g('sidebarBoxActiveVillage') || $g('sidebarBoxVillagelist');
         if (sidebar) {
             // Your server uses sidebarBoxVillagelist, so we hook into that
-            console.log("[TTQ Debug] Hooking into sidebar: " + sidebar.id);
+            // console.log("[TTQ Debug] Hooking into sidebar: " + sidebar.id);
         }
         observer.observe($g('sidebarAfterContent'), { childList: true, subtree: true });
         if (RB.Setup[14] > 0) showDorf1();
