@@ -414,7 +414,7 @@ class Automation
         $db->query("DELETE FROM log_ip WHERE time < " . (time() - 15 * 86400));
         $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (deleted=1 AND time < ($halfDay))) LIMIT 20000");
         if (getCustom("removeReports")) {
-            $XY = time() - getCustom("removeReports");
+            $XY = time() - (int)(getCustom("removeReports") / getGameSpeed());
             $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (archive=0 AND time < $XY)) LIMIT 20000");
         }
         $types = implode(",", [
@@ -422,7 +422,8 @@ class Automation
             NoticeHelper::TYPE_WON_DEFENSE_WITHOUT_LOSSES,
         ]);
         if (getCustom("removeReportsBelow30Percent")) {
-            $db->query("DELETE FROM ndata WHERE non_deletable=0 AND type IN($types) AND time < $tenMin AND losses <= 30 AND archive=0 LIMIT 20000");
+            $reportWindow = time() - max(600, (int)(86400 / getGameSpeed()));
+            $db->query("DELETE FROM ndata WHERE non_deletable=0 AND type IN($types) AND time < $reportWindow AND losses <= 30 AND archive=0 LIMIT 20000");
         }
         $db->query("DELETE FROM mdata WHERE viewed=1 AND time < " . (time() - 2 * 86400));
         //if(filesize(INCLUDE_PATH . "error_log.log")) {
