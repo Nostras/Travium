@@ -6872,7 +6872,7 @@
                     var uclass = ts[i].getAttribute('class');
                     if (typeof (allUC[uclass]) == 'undefined') allUC[uclass] = ['', 0, 0];
                     allUC[uclass][0] = ts[i].getAttribute('alt');
-                    allUC[uclass][1] += parseInt(ts[i].parentNode.innerHTML.onlyText().match(/\d+/)[0]);
+                    allUC[uclass][1] += toNumber(ts[i].parentNode.innerHTML.onlyText());
                     if (allUC[uclass][2] > 0) mFL = true; else allUC[uclass][2]++;
                 }
                 if (mFL) {
