@@ -718,8 +718,6 @@
                 RB.village_PPH[10] = max[2]; RB.village_PPH[11] = max[3];
                 RB.village_PPH[12] = Math.round(Date.now() / 1000);
                 saveVCookie('vPPH', RB.village_PPH);
-                var _dbgKey = GMcookieID+'vPPH';
-                console.log("[TRBP vPPH] key="+_dbgKey+" stored="+JSON.stringify(RB_getValue(_dbgKey,"(empty)")).substring(0,200));
             }
 
             return true;
@@ -1210,7 +1208,7 @@
                 return timerB[j].obj;
             }
 
-            var neededRes = base.match(/>(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/);
+            var neededRes = base.replace(/,(?=\d{3})/g, '').match(/>(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/);
             wfl = false;
             var wantsResMem = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             var wantsResMemP = RB.wantsMem.slice();
@@ -1267,7 +1265,7 @@
             var baseWrap = $xf('.//div[contains(@class,"resourceWrapper")]', 'l', cont);
             for (var i = 0; i < baseWrap.length; i++) {
                 var base = baseWrap[i];
-                if (! />(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/.test(base.innerHTML)) break;
+                if (! />(\d+).+?>(\d+).+?>(\d+).+?>(\d+)/.test(base.innerHTML.replace(/,(?=\d{3})/g, ''))) continue;
                 var newD = needed_show(base.innerHTML);
                 if (base.parentNode.classList.contains("contractWrapper") || base.parentNode.classList.contains("information") || base.parentNode.classList.contains("details") || (/hero/.test(crtPath))) {
                     addNPC(base.parentNode);
@@ -3610,8 +3608,6 @@
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
                 loadVCookie('vPPH', 'village_PPH', villages_id[vn]);
-                var _dk = GMcookieID+'vPPH';
-                console.log('[TRBP ovWar] vn='+vn+' vid='+villages_id[vn]+' raw='+String(RB_getValue(_dk,'(empty)')).substring(0,100)+' PPH='+JSON.stringify(RB.village_PPH));
 
                 var minLeft = Number.POSITIVE_INFINITY;
                 for (var i = 0; i < 4; i++) {
@@ -3696,8 +3692,6 @@
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
                 var newTR = $ee('TR', $c(vName));
                 loadVCookie('vPPH', 'village_PPH', villages_id[vn]);
-                var _dk = GMcookieID+'vPPH';
-                console.log('[TRBP ovRes] vn='+vn+' vid='+villages_id[vn]+' raw='+String(RB_getValue(_dk,'(empty)')).substring(0,100)+' PPH='+JSON.stringify(RB.village_PPH));
 
                 var allResInV = 0;
                 for (var i = 0; i < 4; i++) {
@@ -4469,17 +4463,14 @@
                 var newCookie = [0];
                 var t = 1;
                 var troopsEl = $g("troops");
-                if (!troopsEl) { console.log("[TRBP troops] no #troops element"); return; }
+                if (!troopsEl) return;
                 var troops = $xf('.//tr[.//img]', 'l', troopsEl);
-                if (!troops) { console.log("[TRBP troops] XPath returned null"); return; }
-                console.log("[TRBP troops] count="+troops.length+" village_aid="+village_aid+" villages_id="+JSON.stringify(villages_id)+" villages_count="+villages_count);
+                if (!troops) return;
                 var fl = RB.village_dorf12[0] == troops.length ? false : true;
                 for (var i = 0; i < troops.length; i++) {
-                    if (troops[i].cells.length < 3) { console.log("[TRBP troops] row "+i+" skipped, cells="+troops[i].cells.length); continue; }
                     newCookie[0]++;
                     var imgClass = troops[i].getElementsByTagName('IMG')[0].getAttribute('class');
                     var unitMatch = imgClass.match(/ u(.+)/);
-                    if (!unitMatch) { console.log("[TRBP troops] row "+i+" img class no match: "+imgClass); continue; }
                     newCookie[t++] = unitMatch[1];
                     newCookie[t++] = toNumber(troops[i].cells[1].innerHTML);
                     if (!fl) {
@@ -5317,7 +5308,6 @@
             var ITTb = $e('TBODY');
             var newITT = $ee('TABLE', ITTb, [['class', allIDs[7]]]);
             loadZVCookie('Dorf12', 'village_dorf12');
-            console.log("[TRBP hover] village_aid="+village_aid+" dorf12[0]="+RB.village_dorf12[0]+" raw="+RB_getValue('TRBPrb_Dorf12','(empty)'));
             var tt = 0;
             var tc = 0;
             var ti = [0, 0, 0, 0, 0];
