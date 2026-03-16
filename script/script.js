@@ -3652,7 +3652,12 @@
 
         function overviewWarehouse() {
             function refreshOview() {
-                if ((parseInt(RB.overview[1]) + 900) > nowTime) return;
+                var _lastRefresh = parseInt(RB.overview[1]);
+                var _cooldown = 60; // seconds between full refresh cycles
+                if (!isNaN(_lastRefresh) && (_lastRefresh + _cooldown) > nowTime) {
+                    refreshImg.title = gtext("refresh") + " (" + (_lastRefresh + _cooldown - nowTime) + "s)";
+                    return;
+                }
                 RB.overview[0] = 0;
                 RB.overview[1] = crtPath.split("?")[0] + clearAntibot(linkVSwitch[village_aNum]);
                 saveCookie('OV', 'overview');
@@ -7861,7 +7866,9 @@
             } else {
                 RB.overview[0] = i;
                 saveCookie('OV', 'overview');
-                var newdid = linkVSwitch[i - 1].match(/newdid=\d+/i)[0];
+                var _nMatch = linkVSwitch[i - 1].match(/newdid=\d+/i);
+                if (!_nMatch) { RB.overview[0] = -2; saveCookie('OV', 'overview'); setTimeout(function () { document.location.href = RB.overview[1]; }, getRandom(300, 1000)); return; }
+                var newdid = _nMatch[0];
                 setTimeout(function () { document.location.href = fullName + 'dorf1.php?' + newdid; }, getRandom(300, 1000));
             }
             return;
