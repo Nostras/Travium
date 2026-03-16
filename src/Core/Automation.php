@@ -150,7 +150,7 @@ class Automation
     {
         $db = DB::getInstance();
         $config = Config::getInstance();
-        $donate_reset_interval = $config->allianceBonus->donate_reset_interval;
+        $donate_reset_interval = (int) ($config->allianceBonus->donate_reset_interval / getGameSpeed());
         $lastDonateReset = $db->fetchScalar("SELECT lastAllianceContributeReset FROM config");
         if ($lastDonateReset < $config->game->start_time) {
             $lastDonateReset = $config->game->start_time;
@@ -415,7 +415,7 @@ class Automation
         $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (deleted=1 AND time < ($halfDay))) LIMIT 20000");
         if (getCustom("removeReports")) {
             // Minimum 7 days real-world retention regardless of speed; sqrt scaling for higher base values
-            $scaledRetention = max(604800, (int)(getCustom("removeReports") / sqrt(getGameSpeed())));
+            $scaledRetention = max(604800, (int) (getCustom("removeReports") / sqrt(getGameSpeed())));
             $XY = time() - $scaledRetention;
             $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (archive=0 AND time < $XY)) LIMIT 20000");
         }
@@ -425,7 +425,7 @@ class Automation
         ]);
         if (getCustom("removeReportsBelow30Percent")) {
             // 2 days base, sqrt scaled, minimum 24h real-world retention
-            $scaledBelow30 = max(86400, (int)(172800 / sqrt(getGameSpeed())));
+            $scaledBelow30 = max(86400, (int) (172800 / sqrt(getGameSpeed())));
             $reportWindow = time() - $scaledBelow30;
             $db->query("DELETE FROM ndata WHERE non_deletable=0 AND type IN($types) AND time < $reportWindow AND losses <= 30 AND archive=0 LIMIT 20000");
         }
