@@ -3764,7 +3764,7 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
             $t[2] = 1875 * $t[1];
         }
 
-        $time = (($t[0] * pow($t[1], $lvl - 1) - $t[2]) * ($mb != 0 ? pow(0.964,
+        $time = (($t[0] * pow($t[1], $lvl - 1) - $t[2]) * ($mb != 0 ? pow(0.9433,
                 $mb - 1) : 5) / $rate / ($n ? 2 : 1));
 
         if ($rate > 500) {
