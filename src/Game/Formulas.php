@@ -3579,7 +3579,7 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
 
     public static function getMainBuildingValue($lvl)
     {
-        return round(100 / (pow(0.964, 1 - $lvl)));
+        return round(100 / (pow(0.9433, 1 - $lvl)));
     }
 
     public static function celebrationCost($big = FALSE)
