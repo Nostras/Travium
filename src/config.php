@@ -264,6 +264,9 @@ $config = (object)[
         'activationReminderInterval'              => 0,
         'activationProgressReminderInterval'      => 0,
         'removeVillageFromFarmListOnCapture' 	  => true,
+        'maxArtifactsPerVillage'                  => 1,
+        'maxArtifactsPerSize'                     => 3,
+        'maxArtifactsTotal'                       => 5,
     ],
     'bonus'                 => (object)[
         'bonusGoldWinner'            => 250,

@@ -150,14 +150,18 @@ class ArtefactsModel
     public function canClaimArtifact($type, $size, $atkUid, $defUid, $atkKid, $attackerBuildings, $defBuildings)
     {
         $db = DB::getInstance();
-        if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE kid=$atkKid") >= 1) {
+        $maxPerVillage = getCustom("maxArtifactsPerVillage") ?: 1;
+        $maxPerSize    = getCustom("maxArtifactsPerSize") ?: 1;
+        $maxTotal      = getCustom("maxArtifactsTotal") ?: 3;
+    
+        if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE kid=$atkKid") >= $maxPerVillage) {
             return -1;
         }
         if (!($atkUid == $defUid) && $atkUid <> 1) {
-            if ($size > 1 && $db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE size=$size AND uid=$atkUid") >= 1) {
+            if ($size > 1 && $db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE size=$size AND uid=$atkUid") >= $maxPerSize) {
                 return -2;
             }
-            if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE uid=$atkUid") >= 5) {
+            if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE uid=$atkUid") >= $maxTotal) {
                 return -2;
             }
         }
@@ -359,17 +363,20 @@ class ArtefactsModel
     public function fixArtifactOrderForPlayer($uid)
     {
         $db = DB::getInstance();
-        //disable all artifacts of two accounts
+        $maxTotal  = getCustom("maxArtifactsTotal") ?: 3;
+        $maxPerSize = getCustom("maxArtifactsPerSize") ?: 1;
+    
+        // Disable all artifacts for this player
         $db->query("UPDATE artefacts SET status=2 WHERE uid=$uid");
-
-        //activate the last small artifact
+    
+        // Activate the most recently conquered small artifact first
         $db->query("UPDATE artefacts SET status=1 WHERE size=1 AND uid=$uid ORDER BY conquered DESC LIMIT 1");
-
-        //activate first big or unique artifact
-        $db->query("UPDATE artefacts SET status=1 WHERE uid=$uid AND size>1 ORDER BY conquered ASC LIMIT 1");
-
-        //activating other small artifacts
-        $left = 3 - (int)$db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE status=1 AND uid=$uid");
+    
+        // Activate up to $maxPerSize big/unique artifacts (oldest first)
+        $db->query("UPDATE artefacts SET status=1 WHERE uid=$uid AND size>1 ORDER BY conquered ASC LIMIT $maxPerSize");
+    
+        // Fill remaining slots with small artifacts up to $maxTotal
+        $left = $maxTotal - (int)$db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE status=1 AND uid=$uid");
         if ($left > 0) {
             $db->query("UPDATE artefacts SET status=1 WHERE uid=$uid AND status=2 AND size=1 ORDER BY conquered ASC LIMIT $left");
         }
