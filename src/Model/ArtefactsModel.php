@@ -157,7 +157,7 @@ class ArtefactsModel
             if ($size > 1 && $db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE size=$size AND uid=$atkUid") >= 1) {
                 return -2;
             }
-            if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE uid=$atkUid") >= 3) {
+            if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE uid=$atkUid") >= 5) {
                 return -2;
             }
         }
