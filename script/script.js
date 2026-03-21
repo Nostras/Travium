@@ -2272,10 +2272,10 @@
             if (incomepersecond[3] < 0) {
                 var rLlFL = rLl;
                 var ntf = fullRes[3] - incomeToGo[3];
-                timeToZero = timeToGo - Math.round(incomeToGo[3] / incomepersecond[3]);
+                timeToZero = timeToGo + Math.round(incomeToGo[3] / (-incomepersecond[3]));
                 if (RB.Setup[10] > 2) textIncome += ' <b>/ ' + ntf + '</b>';
                 else if (timeToZero < 86400)
-                    textIncome += '<i class="r5"></i><span style="margin-' + docDir[1] + ': auto;">' + formatTime(serverTime + timeToZero, 2) + '</span>';
+                    textIncome += '<i class="r5"></i><span style="margin-' + docDir[1] + ': auto;">' + formatTime(timeToZero, 0) + '</span>';
                 if (redTime > 0) {
                     if (redLineFL) {
                         redLines[++rLl] = [extraRes, redTime, 0, ntf];
@@ -2397,8 +2397,13 @@
                         newT.appendChild($em('TR', [$c($a(formatTime(td(redLines[i][1]), 1), [['href', '#' + allIDs[44] + i]])), $c(formatTime(dur, 0)), $c(redLines[i][0]), $c(redLines[i][3])]));
                 }
             }
-            if (redLineFL)
-                newT.appendChild($em('TR', [$c(formatTime(absTime(timeToZero, serverTime), 1)), $c('--:--'), $c('-'), $c('-')]));
+            if (redLineFL) {
+                // Calculate when crop hits zero: after last delivery (lastTime seconds from now),
+                // the remaining projected stock depletes at |incomepersecond[3]| per second
+                var secsUntilZero = lastTime + Math.round(incomeToGo[3] / (-incomepersecond[3]));
+                // Show as duration (e.g. "16:16:53") so it matches the countdown timer in the Σ row
+                newT.appendChild($em('TR', [$c(formatTime(secsUntilZero, 0)), $c('--:--'), $c('-'), $c('-')]));
+            }
 
             tObj.parentNode.insertBefore(newT, tObj);
         }
@@ -2739,8 +2744,8 @@
         var all_moving = 0;
         function incomeResourcesInRP34() {
             var townTables = $xf('.//table[.//td[@class="role"]/a]', 'l', cont);
-            resourceCalculatorInit();
             if (all_moving == townTables.length) return; else all_moving = townTables.length;
+            resourceCalculatorInit();
             for (var i = 0; i < townTables.length; i++) {
                 var ttable = townTables[i];
                 var vID = $xf('thead/tr/td[@class="role"]/a', 'f', ttable).getAttribute('href').match(/d=(\d+)/)[1];
