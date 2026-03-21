@@ -795,7 +795,7 @@ HTML;
             return false;
         } else if ($nextLevel > Formulas::buildingMaxLvl($item_id, $this->isCapital())) { //reached max lvl
             return false;
-        } else if (($isMaster && $this->isWW() && $item_id <> 40) || ($isMaster && $workers['isMasterBusy'])) { //can just use masterBuilder for WW :|
+        } else if ($isMaster && $workers['isMasterBusy']) {
             return false;
         } else if ($this->checkArtifactDependencies($item_id) <> 0) {
             return false;
