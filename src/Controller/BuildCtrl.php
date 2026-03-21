@@ -461,7 +461,7 @@ class BuildCtrl extends GameCtrl
         $link = ("dorf" . $pageNamePostfix . ".php?") . "a=" . ($lvl > 1 || $item_id <= 4 ? $fieldId : $item_id) . (($lvl > 1 || $item_id <= 4 ? "" : '&id=' . $fieldId) . '&c=' . $session->getChecker());
         $cost = Formulas::buildingUpgradeCosts($item_id, $lvl);
         $goldHelper = new GoldHelper();
-        if ((!$village->isWW() || $item_id == 40) && ($workerResult['isBusy'] || !$village->isResourcesAvailable($cost))) {
+        if ($workerResult['isBusy'] || !$village->isResourcesAvailable($cost)) {
             //masterBuilder
             $result['master'] = $goldHelper->getMasterBuilderButton($fieldId, $item_id, $village->getField($fieldId)['level'] + $village->getField($fieldId)['upgrade_state'], $link);
         }
