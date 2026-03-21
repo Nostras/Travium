@@ -33,7 +33,7 @@ $config->game->deletionTime = 3600 * 1;
 $config->masterBuilder->maxTasksInNoneWonder = 20;
 // Also permit in wonder (it's master builder, whatever man)
 $config->masterBuilder->maxTasksInWonder = 20;
-
+$config->custom->noArtifactLimits = true;
 {
     if ($config->game->speed >= 5000) {
         $config->game->dailyQuestInterval = 6 * 3600;

@@ -267,6 +267,7 @@ $config = (object)[
         'maxArtifactsPerVillage'                  => 1,
         'maxArtifactsPerSize'                     => 3,
         'maxArtifactsTotal'                       => 5,
+        'noArtifactLimits'                        => false,
     ],
     'bonus'                 => (object)[
         'bonusGoldWinner'            => 250,
