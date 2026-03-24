@@ -663,11 +663,11 @@
             try {
                 if (aText !== "") {
                     var prodMatch = aText.match(/resources\.production\s*=\s*({[^}]+})/) ||
-                                    aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
+                        aText.match(/production["']?\s*[=:]\s*({[^}]+})/);
                     if (prodMatch) {
                         try {
                             productionData = JSON.parse(prodMatch[1]);
-                        } catch(e) {
+                        } catch (e) {
                             var jsonStr = prodMatch[1].replace(/'/g, '"').replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
                             productionData = JSON.parse(jsonStr);
                         }
@@ -1686,7 +1686,7 @@
                     var mDiv = merInfoEl.firstElementChild.nextSibling;
                     mName = mDiv ? mDiv.textContent.split(":")[0] : RB.dictionary[2];
                     maxTr = toNumber($gc('denominator', merInfoEl)[0].textContent);
-                    maxC = parseInt(($gc('merchantCarryInfo')[0] || {textContent:'0'}).textContent.match(/(\d+)/)[1]);
+                    maxC = parseInt(($gc('merchantCarryInfo')[0] || { textContent: '0' }).textContent.match(/(\d+)/)[1]);
                 } else {
                     // Legacy market: "Merchants 1/1" in .merchantsAvailable parent,
                     // capacity from #merchantCapacityValue
@@ -1729,7 +1729,7 @@
             if (!basee) return;
             var isLegacyMarket = !$gc('sendResourcesForm')[0]; // true on this server
 
-            var resnames = isLegacyMarket ? ["r1","r2","r3","r4"] : ["lumber","clay","iron","crop"];
+            var resnames = isLegacyMarket ? ["r1", "r2", "r3", "r4"] : ["lumber", "clay", "iron", "crop"];
 
             var merInfo = $gc('merchantsInformation');
             var moC = null;
@@ -2718,7 +2718,7 @@
             RB_setValue(GMcookieID + 'next', xy);
             if (distInVilageFL) {
                 for (var vn = 0; vn < villages_count; vn++) {
-                    var _dvEl = document.querySelector('div#sidebarBoxVillagelist a[href="'+linkVSwitch[vn]+'"]');
+                    var _dvEl = document.querySelector('div#sidebarBoxVillagelist a[href="' + linkVSwitch[vn] + '"]');
                     distInVilage[villages_id[vn]] = _dvEl ? (_dvEl.querySelector('span.name') || _dvEl).textContent.trim() : String(villages_id[vn]);
                 }
                 distInVilageFL = false;
@@ -3637,7 +3637,7 @@
                 if (!capital || capital == 0) capital = villages_id[0] || village_aid || 1;
                 if (RB.dictionary[0] != capital || RB.dictFL[1] == 0 || fl) {
                     var ally = '';
-                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont)[2].innerHTML.match(/>(.+?):?</)[1]; } catch(e) {}
+                    try { ally = $xf('.//div["playerProfile"]//table//tr', 'l', cont)[2].innerHTML.match(/>(.+?):?</)[1]; } catch (e) { }
                     RB.dictionary[0] = capital;
                     RB.dictionary[1] = ally;
                     saveCookie('Dict', 'dictionary');
@@ -3683,7 +3683,7 @@
             var t = 0;
             var nowTime = Math.round((Date.now()) / 1000);
             for (var vn = 0; vn < villages_count; vn++) {
-                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="'+linkVSwitch[vn]+'"]');
+                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="' + linkVSwitch[vn] + '"]');
                 var _vLinkName = _vLinkEl ? (_vLinkEl.querySelector('span.name') || _vLinkEl).textContent.trim() : String(villages_id[vn]);
                 var vName = $a(_vLinkName, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
@@ -3767,7 +3767,7 @@
             var resSumm = [0, 0, 0, 0, 0];
             var nowTime = Math.round((Date.now()) / 1000);
             for (var vn = 0; vn < villages_count; vn++) {
-                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="'+linkVSwitch[vn]+'"]');
+                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="' + linkVSwitch[vn] + '"]');
                 var _vLinkName = _vLinkEl ? (_vLinkEl.querySelector('span.name') || _vLinkEl).textContent.trim() : String(villages_id[vn]);
                 var vName = $a(_vLinkName, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
@@ -3824,7 +3824,7 @@
 
             var newTBody = $e('TBODY');
             for (var vn = 0; vn < villages_count; vn++) {
-                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="'+linkVSwitch[vn]+'"]');
+                var _vLinkEl = document.querySelector('div#sidebarBoxVillagelist a[href="' + linkVSwitch[vn] + '"]');
                 var _vLinkName = _vLinkEl ? (_vLinkEl.querySelector('span.name') || _vLinkEl).textContent.trim() : String(villages_id[vn]);
                 var vName = $a(_vLinkName, [['href', linkVSwitch[vn]]]);
                 if (villages_id[vn] == village_aid) $at(vName, [['style', 'color:#71D000;']]);
@@ -5882,8 +5882,8 @@
                 }
                 // ── Pairing mode: match 4446+3oasis with 15c+150%grain ────────────────
                 if (cPair.checked) {
-                    var valid4446 = aCCs.filter(function(a) { return a[0] === '4446:' && passes4446OasisCheck(a[1], a[2]); });
-                    var valid15c  = aCCs.filter(function(a) {
+                    var valid4446 = aCCs.filter(function (a) { return a[0] === '4446:' && passes4446OasisCheck(a[1], a[2]); });
+                    var valid15c = aCCs.filter(function (a) {
                         if (a[0] !== 'Crop 15:') return false;
                         var ob = nearbyOasisBonuses(a[1], a[2]);
                         return ob.r4 >= 150;
@@ -5895,7 +5895,7 @@
                             pairs.push([valid4446[p4], valid15c[p15], d]);
                         }
                     }
-                    pairs.sort(function(a, b) { return a[2] - b[2]; });
+                    pairs.sort(function (a, b) { return a[2] - b[2]; });
                     if (pairs.length > 0) {
                         var pairTable = $e('TABLE', [['class', allIDs[7]], ['style', 'width:100%;margin-top:8px;']]);
                         pairTable.appendChild($ee('THEAD', $em('TR', [
@@ -5915,8 +5915,8 @@
                             if (ob4.r3 > 0) od4.appendChild($em('span', [$e('i', [['class', 'r3']]), '+' + ob4.r3 + '%']));
                             if (ob4.r4 > 0) od4.appendChild($em('span', [$e('i', [['class', 'r4']]), '+' + ob4.r4 + '%']));
                             pBody.appendChild($em('TR', [
-                                $c($em('span', [$a(a4[1]+'|'+a4[2], [['href', 'karte.php?x='+a4[1]+'&y='+a4[2]]]), ' ', od4])),
-                                $c($em('span', [$a(a15[1]+'|'+a15[2], [['href', 'karte.php?x='+a15[1]+'&y='+a15[2]]]), ' ', $em('span', [$e('i', [['class', 'r4']]), '+' + ob15.r4 + '%'])])),
+                                $c($em('span', [$a(a4[1] + '|' + a4[2], [['href', 'karte.php?x=' + a4[1] + '&y=' + a4[2]]]), ' ', od4])),
+                                $c($em('span', [$a(a15[1] + '|' + a15[2], [['href', 'karte.php?x=' + a15[1] + '&y=' + a15[2]]]), ' ', $em('span', [$e('i', [['class', 'r4']]), '+' + ob15.r4 + '%'])])),
                                 $c(pairs[p][2].toFixed(1))
                             ]));
                         }
@@ -5953,7 +5953,7 @@
             }
             // Returns summed oasis bonuses {r1,r2,r3,r4,count} for tiles within 3 of (x,y)
             function nearbyOasisBonuses(x, y) {
-                var b = {r1:0, r2:0, r3:0, r4:0, count:0};
+                var b = { r1: 0, r2: 0, r3: 0, r4: 0, count: 0 };
                 for (var t = 0; t < oasis.length; t++) {
                     if (Math.abs(x - oasis[t][0]) < 4 && Math.abs(y - oasis[t][1]) < 4) {
                         b.r1 += oasis[t][3]; b.r2 += oasis[t][4];
@@ -6883,7 +6883,13 @@
                     nc = parseInt(wRes[i][0].value).NaN0();
                     for (var t = 0; t < 6; t++) allWR[t] += wRes[i][t + 2] * nc;
                 }
-                var wantD = '>' + allWR[1] + ' >' + allWR[2] + ' >' + allWR[3] + ' >' + allWR[4];
+
+                // [FIX 1] Create a dummy DOM element instead of passing a raw string so needed_show() doesn't crash
+                var wantD = $e('div');
+                wantD.innerHTML = '<span class="value">' + allWR[1] + '</span>' +
+                    '<span class="value">' + allWR[2] + '</span>' +
+                    '<span class="value">' + allWR[3] + '</span>' +
+                    '<span class="value">' + allWR[4] + '</span>';
 
                 var newBTX = $ee('BUTTON', gtext("close") + ' (X)', [['onclick', jsNone], ['class', allIDs[15]], ['style', 'direction:ltr']]);
                 newBTX.addEventListener('click', closeTip, true);
@@ -6891,6 +6897,8 @@
                 var nts = tshift > 0 ? tshift + (RunTime[0] - (Date.now())) / 1e3 : 0;
                 var newR = $em('TR', [$em('TD', [$e('i', [['class', 'clock_medium']]), ' ', $eT('SPAN', allWR[0] + nts, 0), ' ', $e('i', [['class', 'r5']]), ' ', allWR[5]]), $c(newBTX)]);
                 var newTbl = $ee('TABLE', newR, [['class', allIDs[7]], ['style', 'background-color:' + rbpBckColor]]);
+
+                // Pass the dummy element to needed_show
                 var newT = needed_show(wantD);
                 newR = $ee('TR', $c(newT, [['colspan', 2]]));
                 newTbl.appendChild(newR);
@@ -6913,25 +6921,29 @@
                 var detailEl = tinp.parentNode.parentNode;
                 var res = $gc('resourceWrapper', detailEl);
                 if (res.length == 0) continue; // no resource block = not a trainable unit
-                var valSpans = res[0].querySelectorAll('.value');
-                if (valSpans.length < 5) continue;
+
+                // [FIX 2] Support finding value classes slightly broader
+                var valSpans = res[0].querySelectorAll('.value, span[class*="val"]');
+
+                // [FIX 3] Drop the requirement from 5 down to 4 (Wood, Clay, Iron, Crop)
+                if (valSpans.length < 4) continue;
+
                 var nTime = toSeconds($gc('duration', detailEl)[0] ? $gc('duration', detailEl)[0].textContent : '0:00:00');
                 wRes[t++] = [tinp, tname, nTime,
                     toNumber(valSpans[0].textContent),
                     toNumber(valSpans[1].textContent),
                     toNumber(valSpans[2].textContent),
                     toNumber(valSpans[3].textContent),
-                    toNumber(valSpans[4].textContent)];
+                    toNumber(valSpans[4] ? valSpans[4].textContent : '0')]; // Safe fallback if 5th element (upkeep) is missing
+
                 tinp.addEventListener('keyup', resRecalc, false);
                 tinp.addEventListener('click', resRecalc, false);
             }
             var tshift = 0;
-            // Support both exact class "under_progress" and servers using different queue class names
             var upt = $xf('.//table[@class="under_progress"]', 'l', cont);
             if (upt.length == 0) upt = Array.from(cont.querySelectorAll('table[class*="under"],[class*="trainQueue"],[class*="buildingQueue"]'));
             if (upt.length > 0) {
                 upt = upt[0];
-                // Try exact class td.dur first, then fallback to contains
                 var ts = $xf('.//td[@class="dur"]/span', 'l', upt);
                 if (ts.length == 0) ts = Array.from(upt.querySelectorAll('td.dur span,[class*="dur"] span'));
                 if (ts.length > 0) tshift = toSeconds(ts[ts.length - 1].innerHTML);
