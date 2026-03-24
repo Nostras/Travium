@@ -448,7 +448,7 @@ class MarketPlaceCtrl extends AnyCtrl
             if (WebService::isPost() && $_POST['c'] == Session::getInstance()->getChecker()) {
                 $repeat = max(min((int)$_POST['repeat'], 3), 1);
                 if ($usePeriodicTradeRoutes) {
-                    $hour = max(min((int)$_POST['hour'], 86400), 600);
+                    $hour = max(min((int)$_POST['hour'], 86400), 120);
                 } else {
                     $hour = max(min((int)$_POST['hour'], 23), 0);
                 }
