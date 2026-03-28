@@ -563,15 +563,38 @@ class Automation
 
     public function checkAutoFinish()
     {
-        if (Config::getProperty("timers", "WWConstructStartTime") < 10 || Config::getProperty("timers", "AutoFinishTime") <= 10) {
+        $wwConstructStart = Config::getProperty("timers", "WWConstructStartTime");
+        $autoFinishTime   = Config::getProperty("timers", "AutoFinishTime");
+        $wwUpLvlInterval  = Config::getProperty("timers", "WWUpLvlInterval");
+        $delayTime        = Config::getInstance()->dynamic->delayTime ?? 'PROPERTY_MISSING';
+    
+        logError(sprintf(
+            "[checkAutoFinish] now=%d | WWConstructStartTime=%s | AutoFinishTime=%s | WWUpLvlInterval=%s | delayTime=%s",
+            time(),
+            var_export($wwConstructStart, true),
+            var_export($autoFinishTime, true),
+            var_export($wwUpLvlInterval, true),
+            var_export($delayTime, true)
+        ));
+    
+        if ($wwConstructStart < 10 || $autoFinishTime <= 10) {
+            logError("[checkAutoFinish] EARLY RETURN — guard failed (WWConstructStartTime=$wwConstructStart, AutoFinishTime=$autoFinishTime)");
             return;
         }
-        $db = DB::getInstance();
+    
+        $db   = DB::getInstance();
         $stmt = $db->query("SELECT serverFinished, WWAlertSent FROM config");
         if (!$stmt->num_rows)
             return;
         $stmt = $stmt->fetch_assoc();
-        if (!$stmt['WWAlertSent'] && time() > Config::getProperty("timers", "WWConstructStartTime")) {
+    
+        logError(sprintf(
+            "[checkAutoFinish] serverFinished=%s | WWAlertSent=%s",
+            var_export($stmt['serverFinished'], true),
+            var_export($stmt['WWAlertSent'], true)
+        ));
+    
+        if (!$stmt['WWAlertSent'] && time() > $wwConstructStart) {
             $db->query("UPDATE config SET WWAlertSent=1");
             $m = new PublicMsgModel();
             $m->haveNewMessage('[NatarsAreBuildingWW]');
@@ -579,13 +602,18 @@ class Automation
         $config = Config::getInstance();
         if (!$stmt['serverFinished']) {
             $wwLevel = floor(max(time() - $config->timers->WWConstructStartTime, 0) / $config->timers->WWUpLvlInterval);
+            logError("[checkAutoFinish] wwLevel=$wwLevel | f99kid=" . Formulas::xy2kid(0, 0));
             if ($wwLevel > 0) {
                 $db->query("UPDATE fdata SET f99=IF($wwLevel>100, 100, $wwLevel) WHERE kid=" . Formulas::xy2kid(0, 0));
             }
             if ($wwLevel >= 100) {
+                logError("[checkAutoFinish] Calling finishTheGame(2) — wwLevel>=100");
                 (new AutomationModel())->finishTheGame(2);
-            } else if (time() >= Config::getProperty("timers", "AutoFinishTime")) {
+            } else if (time() >= $autoFinishTime) {
+                logError("[checkAutoFinish] Calling finishTheGame(2) — AutoFinishTime passed");
                 (new AutomationModel())->finishTheGame(2);
+            } else {
+                logError(sprintf("[checkAutoFinish] Not finishing yet — wwLevel=%d, time-to-AutoFinish=%ds", $wwLevel, $autoFinishTime - time()));
             }
         }
     }
