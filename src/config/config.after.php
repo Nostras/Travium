@@ -66,7 +66,7 @@ function multiply_for_other_servers()
     }*/
 }
 
-if (property_exists($config->dynamic, 'delayTime')) {
+if (!empty($config->dynamic->delayTime)) {
     $config->timers->ArtifactsReleaseTime += $config->dynamic->delayTime;
     $config->timers->wwPlansReleaseTime += $config->dynamic->delayTime;
     if ($config->timers->WWConstructStartTime > 0) {
