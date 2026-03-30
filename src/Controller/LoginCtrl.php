@@ -119,7 +119,7 @@ class LoginCtrl extends OutOfGameCtrl
         $this->LoginView->vars['lowRes'] = (bool)isset($_POST['lowRes']);
         $this->LoginView->vars['userError'] = $this->LoginView->vars['pwError'] = '';
         $this->LoginView->vars['captchaError'] = '';
-        $this->LoginView->vars['captcha'] = $this->isAdmin || getDisplay("requireCaptchaLogin");
+        $this->LoginView->vars['captcha'] = false; //$this->isAdmin || getDisplay("requireCaptchaLogin");
         $this->LoginView->vars['success'] = FALSE;
         $this->LoginView->vars['public_key'] = $globalConfig['staticParameters']['recaptcha_public_key'];
         $this->LoginView->vars['newPassErr'] = '';
