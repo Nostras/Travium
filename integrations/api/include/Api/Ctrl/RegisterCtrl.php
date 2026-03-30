@@ -55,7 +55,7 @@ class RegisterCtrl extends ApiAbstractCtrl
     public function activate()
     {
         global $globalConfig;
-        $needs = ['gameWorld', 'activationCode', 'password', 'captcha'];
+        $needs = ['gameWorld', 'activationCode', 'password']; //, 'captcha'];
         foreach ($needs as $k) {
             if (!isset($this->payload[$k])) {
                 throw new MissingParameterException($k);
