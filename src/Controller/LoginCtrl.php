@@ -269,6 +269,7 @@ class LoginCtrl extends OutOfGameCtrl
                     <br />
                 <div class="clear"></div>
             </div>
+            Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
             <div class="clear"></div>
         </div></div>';
     }
