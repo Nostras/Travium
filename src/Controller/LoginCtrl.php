@@ -85,6 +85,7 @@ class LoginCtrl extends OutOfGameCtrl
         if ($this->isAdmin && time() < $config->game->start_time) {
             $this->beforeGame();
         }
+        logError(sprintf("[login] time=%d, start time=%d, maintenance=%u, isAdmin=%u", time(), $config->game->start_time, $config->dynamic->maintenance, $this->isAdmin));
         if ((time() >= $config->game->start_time && $config->dynamic->maintenance == FALSE) || $this->isAdmin) {
             $this->loginAction();
         } else if (!$this->isAdmin) {
@@ -269,7 +270,6 @@ class LoginCtrl extends OutOfGameCtrl
                     <br />
                 <div class="clear"></div>
             </div>
-            Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
             <div class="clear"></div>
         </div></div>';
     }
