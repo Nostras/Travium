@@ -36,8 +36,25 @@ A fast, stable Travian T4.5 clone with a one-click installer in a single command
 
 > For me 
 
-```
+```bash
 bash <(curl -skL https://raw.githubusercontent.com/Nostras/Travium/refs/heads/feature/wip/install.sh) --domain localtrav.test
+```
+
+> Re-using certificates
+
+If you've run it already, you may just want to move your old certificates instead of regenerating (plus having to install it again sucks).
+
+Pull it:
+```bash
+tar czf ~/certs-backup.tar.gz -C /etc/nginx/ssl-certificates \
+  LOCALTRAV.key LOCALTRAV.crt LOCALTRAV.srl \
+  localtrav.test.key localtrav.test.crt
+```
+
+Push it:
+```bash
+mkdir -p /root/certs-restore
+tar xzf certs-backup.tar.gz -C /root/certs-restore
 ```
 
 ---

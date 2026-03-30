@@ -24,8 +24,8 @@ SITE_USER=""
 RECAPTCHA_PUBLIC=""
 RECAPTCHA_PRIVATE=""
 DEFAULT_SITE_USER="travium"
-DEFAULT_RECAPTCHA_PUBLIC="6LdQ8AIsAAAAAM0SKRYd_JiGqVqxZPTYflrdPOvH"
-DEFAULT_RECAPTCHA_PRIVATE="6LdQ8AIsAAAAANlEknjUf9LWLODJrpoDiHXTvPAV"
+DEFAULT_RECAPTCHA_PUBLIC="6LdaX54sAAAAAEPryAZCEDLeeZ2GZfCXfNy-hbfX"
+DEFAULT_RECAPTCHA_PRIVATE="6LdaX54sAAAAANrV3e3mRN0WGI3La3SuAew09-vg"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -121,6 +121,28 @@ for i in {1..60}; do
   sleep 2
   [[ $i -eq 60 ]] && die "CloudPanel did not start in time."
 done
+
+#####################################
+# Restore pre-existing certs (if provided)
+# Before running this script, place your old certs in /root/certs-restore/:
+#   /root/certs-restore/LOCALTRAV.key
+#   /root/certs-restore/LOCALTRAV.crt
+#   /root/certs-restore/<DOMAIN>.key   (filename must match your --domain arg)
+#   /root/certs-restore/<DOMAIN>.crt
+# CloudPanel just created /etc/nginx/ssl-certificates — safe to restore into it now.
+#####################################
+RESTORE_DIR="/root/certs-restore"
+if [[ -d "$RESTORE_DIR" ]]; then
+    log "Found $RESTORE_DIR — restoring certs into /etc/nginx/ssl-certificates/ ..."
+    cp "$RESTORE_DIR/LOCALTRAV.key" /etc/nginx/ssl-certificates/
+    cp "$RESTORE_DIR/LOCALTRAV.crt" /etc/nginx/ssl-certificates/
+    cp "$RESTORE_DIR/${DOMAIN}.key"  /etc/nginx/ssl-certificates/
+    cp "$RESTORE_DIR/${DOMAIN}.crt"  /etc/nginx/ssl-certificates/
+    chmod 600 /etc/nginx/ssl-certificates/LOCALTRAV.key /etc/nginx/ssl-certificates/${DOMAIN}.key
+    ok "Certs restored. Generation step will be skipped later."
+else
+    log "No $RESTORE_DIR found — certs will be generated fresh."
+fi
 
 #####################################
 # create CloudPanel admin user
@@ -384,27 +406,41 @@ systemctl start travium-sync.service
 #####################################
 # Regenerate faulty certs
 #####################################
-# Define your domain
 SSL_DIR="/etc/nginx/ssl-certificates"
 CA_NAME="LOCALTRAV"
 
-# --- STEP 1: Create the Root CA (The "Boss") ---
-# We only do this once. This is the file you install on Windows/Android.
-if [ ! -f "$SSL_DIR/$CA_NAME.key" ]; then
-    echo "Generating New Root CA..."
-    openssl genrsa -out "$SSL_DIR/$CA_NAME.key" 2048
-    openssl req -x509 -new -nodes -key "$SSL_DIR/$CA_NAME.key" -sha256 -days 3650 \
-        -out "$SSL_DIR/$CA_NAME.crt" \
-        -subj "/C=US/ST=State/L=Locality/O=Development/CN=$CA_NAME"
-fi
+# If all four cert files are already present (copied in from a previous install),
+# skip generation entirely so existing device trust is preserved.
+# Files to copy from the old VM before running this script:
+#   /etc/nginx/ssl-certificates/LOCALTRAV.key
+#   /etc/nginx/ssl-certificates/LOCALTRAV.crt
+#   /etc/nginx/ssl-certificates/<DOMAIN>.key
+#   /etc/nginx/ssl-certificates/<DOMAIN>.crt
+if [[ -f "$SSL_DIR/$CA_NAME.key" && \
+      -f "$SSL_DIR/$CA_NAME.crt" && \
+      -f "$SSL_DIR/$DOMAIN.key"  && \
+      -f "$SSL_DIR/$DOMAIN.crt" ]]; then
+    ok "Existing certs found in $SSL_DIR — skipping cert generation."
+else
+    log "One or more cert files missing — generating fresh certs..."
 
-# --- STEP 2: Generate Domain Key & CSR ---
-openssl genrsa -out "$SSL_DIR/$DOMAIN.key" 2048
-openssl req -new -key "$SSL_DIR/$DOMAIN.key" -out "$SSL_DIR/$DOMAIN.csr" \
-    -subj "/C=US/ST=State/L=Locality/O=Organization/OU=Unit/CN=*.$DOMAIN"
+    # --- STEP 1: Create the Root CA (The "Boss") ---
+    # This is the file you install on Windows/Android.
+    if [ ! -f "$SSL_DIR/$CA_NAME.key" ]; then
+        echo "Generating New Root CA..."
+        openssl genrsa -out "$SSL_DIR/$CA_NAME.key" 2048
+        openssl req -x509 -new -nodes -key "$SSL_DIR/$CA_NAME.key" -sha256 -days 3650 \
+            -out "$SSL_DIR/$CA_NAME.crt" \
+            -subj "/C=US/ST=State/L=Locality/O=Development/CN=$CA_NAME"
+    fi
 
-# --- STEP 3: Create the Config with SAN and CA:FALSE ---
-cat > /tmp/openssl.cnf <<EOF
+    # --- STEP 2: Generate Domain Key & CSR ---
+    openssl genrsa -out "$SSL_DIR/$DOMAIN.key" 2048
+    openssl req -new -key "$SSL_DIR/$DOMAIN.key" -out "$SSL_DIR/$DOMAIN.csr" \
+        -subj "/C=US/ST=State/L=Locality/O=Organization/OU=Unit/CN=*.$DOMAIN"
+
+    # --- STEP 3: Create the Config with SAN and CA:FALSE ---
+    cat > /tmp/openssl.cnf <<EOF
 authorityKeyIdentifier=keyid,issuer
 basicConstraints=CA:FALSE
 keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
@@ -415,15 +451,17 @@ DNS.1 = $DOMAIN
 DNS.2 = *.$DOMAIN
 EOF
 
-# --- STEP 4: Sign the Domain Cert with the Root CA ---
-openssl x509 -req -in "$SSL_DIR/$DOMAIN.csr" \
-    -CA "$SSL_DIR/$CA_NAME.crt" -CAkey "$SSL_DIR/$CA_NAME.key" \
-    -CAcreateserial -out "$SSL_DIR/$DOMAIN.crt" \
-    -days 825 -sha256 -extfile /tmp/openssl.cnf
+    # --- STEP 4: Sign the Domain Cert with the Root CA ---
+    openssl x509 -req -in "$SSL_DIR/$DOMAIN.csr" \
+        -CA "$SSL_DIR/$CA_NAME.crt" -CAkey "$SSL_DIR/$CA_NAME.key" \
+        -CAcreateserial -out "$SSL_DIR/$DOMAIN.crt" \
+        -days 825 -sha256 -extfile /tmp/openssl.cnf
 
-# Reload Nginx
+    echo "Done! Install $CA_NAME.crt on your devices."
+fi
+
+# Reload Nginx regardless — needed whether certs are new or restored
 systemctl reload nginx
-echo "Done! Install $CA_NAME.crt on your devices."
 
 #####################################
 # summary
