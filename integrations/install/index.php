@@ -317,6 +317,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $connection_content = str_replace($order, $order_values, $connection_content);
             file_put_contents($connectionFile, $connection_content);
 
+            // Clean slate — safe to re-run
+            foreach (['wdata','users','config','activation','odata','vdata','fdata',
+                    'ndata','hero','hero_face','hero_inventory','login_handshake',
+                    'available_villages'] as $t) {
+                $db->exec("TRUNCATE TABLE `$t`");
+            }
+
             // Import schema
             $schemaPath = $basePath . 'schema/T4.4.sql';
             if (!file_exists($schemaPath)) {
@@ -329,6 +336,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $db->exec($query . ';');
                 }
             }
+
+            // Schema patches for PHP 8.4 / column compatibility
+            $db->exec("ALTER TABLE `users` MODIFY `gift_gold` BIGINT NOT NULL DEFAULT 0");
+            $db->exec("ALTER TABLE `activation`
+                ADD COLUMN IF NOT EXISTS `used`          TINYINT(1)   NOT NULL DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS `worldId`       INT(11)      NOT NULL DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS `activationCode` VARCHAR(40) NOT NULL DEFAULT '',
+                ADD COLUMN IF NOT EXISTS `newsletter`    TINYINT(1)   NOT NULL DEFAULT 0");
 
             // Add config row
             $cfgStmt = $db->prepare("INSERT INTO `config`
@@ -362,8 +377,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Run installer + updater via CLI
             $adminPass = $input['admin_password'];
-            $cmd1 = "/usr/bin/php7.3 $installerFile install " . escapeshellarg($adminPass);
-            $cmd2 = "/usr/bin/php7.3 $updateFile";
+            $phpBin = PHP_BINARY;
+            $cmd1 = "$phpBin $installerFile install " . escapeshellarg($adminPass);
+            $cmd2 = "$phpBin $updateFile";
 
             [$out1,$code1] = run_cmd($cmd1);
             [$out2,$code2] = run_cmd($cmd2);
