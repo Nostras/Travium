@@ -337,13 +337,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // Schema patches for PHP 8.4 / column compatibility
+            // Clean slate — safe to re-run, tables now guaranteed to exist
+            foreach (['wdata','users','config','activation','odata','vdata','fdata',
+                    'ndata','hero','hero_face','hero_inventory','login_handshake',
+                    'available_villages'] as $t) {
+                $db->exec("TRUNCATE TABLE `$t`");
+            }
+
+            // Schema patches
             $db->exec("ALTER TABLE `users` MODIFY `gift_gold` BIGINT NOT NULL DEFAULT 0");
             $db->exec("ALTER TABLE `activation`
-                ADD COLUMN IF NOT EXISTS `used`          TINYINT(1)   NOT NULL DEFAULT 0,
-                ADD COLUMN IF NOT EXISTS `worldId`       INT(11)      NOT NULL DEFAULT 0,
-                ADD COLUMN IF NOT EXISTS `activationCode` VARCHAR(40) NOT NULL DEFAULT '',
-                ADD COLUMN IF NOT EXISTS `newsletter`    TINYINT(1)   NOT NULL DEFAULT 0");
+                ADD COLUMN IF NOT EXISTS `used`           TINYINT(1)   NOT NULL DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS `worldId`        INT(11)      NOT NULL DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS `activationCode` VARCHAR(40)  NOT NULL DEFAULT '',
+                ADD COLUMN IF NOT EXISTS `newsletter`     TINYINT(1)   NOT NULL DEFAULT 0");
 
             // Add config row
             $cfgStmt = $db->prepare("INSERT INTO `config`
