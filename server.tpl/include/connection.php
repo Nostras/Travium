@@ -18,4 +18,6 @@ $connection = [
         'database' => '[DATABASE_DATABASE]',
         'charset' => 'utf8mb4',
     ],
+    'start_time'    => '[GAME_START_TIME]',
+    'worldUniqueId' => '[SETTINGS_WORLD_UNIQUE_ID]',
 ];

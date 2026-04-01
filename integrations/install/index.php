@@ -362,8 +362,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Run installer + updater via CLI
             $adminPass = $input['admin_password'];
-            $cmd1 = "/usr/bin/php7.3 $installerFile install " . escapeshellarg($adminPass);
-            $cmd2 = "/usr/bin/php7.3 $updateFile";
+            $cmd1 = "/usr/bin/php7.3 " . escapeshellarg($installerFile) . " install " . escapeshellarg($adminPass);
+            $cmd2 = "/usr/bin/php7.3 " . escapeshellarg($updateFile) . " --new-installation";
 
             [$out1,$code1] = run_cmd($cmd1);
             [$out2,$code2] = run_cmd($cmd2);
