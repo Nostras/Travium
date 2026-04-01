@@ -201,6 +201,8 @@ TPL_DISTRO="$(tpl_platform)"
 clpctl vhost-template:add --name='Travium' --file="https://init.travium.net/gettpl.php?domain=${DOMAIN}&user=${SITE_USER}&distro=${TPL_DISTRO}"
 clpctl site:add:php --domainName="${DOMAIN}" --phpVersion=7.3 --vhostTemplate='Travium' --siteUser="${SITE_USER}" --siteUserPassword="${SITE_PASS}"
 clpctl db:add --domainName="${DOMAIN}" --databaseName=maindb --databaseUserName=maindb --databaseUserPassword="${DB_PASS}"
+# Add database as well
+clpctl firewall:add-rule --label='MYSQL' --port='3306' --protocol='tcp' --address='0.0.0.0/0'
 
 #####################################
 # Repo checkout
