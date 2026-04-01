@@ -68,8 +68,9 @@ $db = DB::getInstance();
                 logError("No config row found.");
                 exit("We are having issues, please try again in a moment. E1");
             }
-            $config->dynamic = (object)$result->fetch_assoc(); // ← add this
-            $cache->set('WorldConfig', (object)$result->fetch_assoc(), 300);
+            $row = (object)$result->fetch_assoc();
+            $config->dynamic = $row;
+            $cache->set('WorldConfig', $row, 300);
         }
     }
     if (property_exists($config, 'startTime')) {

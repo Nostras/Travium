@@ -58,8 +58,10 @@ tar xzf certs-backup.tar.gz -C /root/certs-restore
 
 ```
 
-If you've already installed and just want to overwrite with old files, run the previous one +:
+If you've already installed and just want to overwrite with old files, just run this:
 ```bash
+mkdir -p /root/certs-restore
+tar xzf certs-backup.tar.gz -C /root/certs-restore
 cp /root/certs-restore/* /etc/nginx/ssl-certificates/
 chmod 600 /etc/nginx/ssl-certificates/LOCALTRAV.key /etc/nginx/ssl-certificates/localtrav.test.key
 systemctl reload nginx
