@@ -65,11 +65,6 @@ chmod 600 /etc/nginx/ssl-certificates/LOCALTRAV.key /etc/nginx/ssl-certificates/
 systemctl reload nginx
 ```
 
-1 stop shop
-```bash
-bash <(curl -skL https://raw.githubusercontent.com/Nostras/Travium/refs/heads/feature/wip/install.sh) --domain localtrav.test
-```
-
 ---
 
 ## Supported OS

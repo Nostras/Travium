@@ -202,7 +202,7 @@ clpctl vhost-template:add --name='Travium' --file="https://init.travium.net/gett
 clpctl site:add:php --domainName="${DOMAIN}" --phpVersion=7.3 --vhostTemplate='Travium' --siteUser="${SITE_USER}" --siteUserPassword="${SITE_PASS}"
 clpctl db:add --domainName="${DOMAIN}" --databaseName=maindb --databaseUserName=maindb --databaseUserPassword="${DB_PASS}"
 # Add database as well
-clpctl firewall:add-rule --label='MYSQL' --port='3306' --protocol='tcp' --address='0.0.0.0/0'
+ufw allow 3306/tcp
 
 #####################################
 # Repo checkout
