@@ -373,7 +373,7 @@ class BuildCtrl extends GameCtrl
         // 1e9 is returned for capital resource fields with allowResourcesToGoToMaximumPossible.
         // Queue-until has no meaning without a sensible max, so skip the picker for these.
         if ($maxLevel >= 1e9) {
-            return $btnAll;
+            $maxLevel = $currentLevel + $totalSlots;
         }
     
         // "Queue until" level picker — only levels reachable beyond current queued state
