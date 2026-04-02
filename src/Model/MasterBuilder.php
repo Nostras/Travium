@@ -70,9 +70,9 @@ class MasterBuilder
         $commence = $row['commence'];
         if ($player['race'] == 1) {
             if ($item_id > 4 && $workers['buildsNum'] > 0) {
-                $commence = $this->getLastCommence($kid);
+                $commence = $this->getLastCommence($kid, false);  // inside slot
             } else if ($item_id <= 4 && $workers['fieldsNum'] > 0) {
-                $commence = $this->getLastCommence($kid);
+                $commence = $this->getLastCommence($kid, true);   // outside slot
             }
         } else {
             $commence = $this->getLastCommence($kid);
@@ -84,14 +84,16 @@ class MasterBuilder
         }
     }
 
-    private function getLastCommence($kid)
+    private function getLastCommence($kid, ?bool $isField = null)
     {
         $db = DB::getInstance();
-        $commence = $db->fetchScalar("SELECT commence FROM building_upgrade WHERE kid=$kid AND isMaster=0 ORDER BY commence DESC LIMIT 1");
-        if ($commence !== false) {
-            return (int)$commence;
-        }
-        return time();
+        $filter = '';
+        if ($isField === true)  $filter = ' AND building_field <= 18';
+        if ($isField === false) $filter = ' AND building_field > 18';
+        $commence = $db->fetchScalar(
+            "SELECT commence FROM building_upgrade WHERE isMaster=0 AND kid=$kid{$filter} ORDER BY commence DESC LIMIT 1"
+        );
+        return $commence !== false ? (int)$commence : time();
     }
 
     private function sortBuildings($kid)
@@ -194,14 +196,31 @@ class MasterBuilder
             $onLoadLevels = (int)$db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field=99 AND kid=$kid");
             $wwLevel = $buildings['buildings'][99]['level'] + (int)$onLoadLevels;
         }
-        $previous_commence = 0;
+    
+        // Romans have two independent worker slots (fields outside / builds inside),
+        // so we track a separate scheduling chain for each.
+        // All other races have one shared slot.
+        $isRoman = ($player['race'] == 1);
+        $previous_commence_fields = 0; // accumulator for building_field <= 18 (outside)
+        $previous_commence_builds = 0; // accumulator for building_field >  18 (inside)
+    
         $queryBatch = [];
         while ($row = $masterBuilders->fetch_assoc()) {
             $item_id = $buildings['buildings'][$row['building_field']]['item_id'];
             $level = $buildings['buildings'][$row['building_field']]['level'] + 1;
             $level += (int)$db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field={$row['building_field']} AND kid=$kid");
             $cu = Formulas::buildingCropConsumption($item_id, $level, $village['isWW']);
+    
+            // Determine which chain this item belongs to
+            $isField = ($row['building_field'] <= 18);
+            if ($isRoman) {
+                $previous_commence = $isField ? $previous_commence_fields : $previous_commence_builds;
+            } else {
+                $previous_commence = $previous_commence_fields; // single shared chain for non-Romans
+            }
+    
             $commence = time() + $previous_commence;
+    
             if ($level > Formulas::buildingMaxLvl($item_id, $village['capital'])) {
                 $this->deleteProcess($row['id'], $kid, $row['building_field'], $level);
                 continue;
@@ -239,12 +258,19 @@ class MasterBuilder
                 $item_id <= 4,
                 $item_id == 40);
             if ($workers['isBusy']) {
-                $end_time = $db->fetchScalar("SELECT commence FROM building_upgrade WHERE isMaster=0 AND kid={$row['kid']} ORDER BY commence ASC LIMIT 1");
+                // For Romans, only look at active builds in the same slot (inside vs outside).
+                // For others, look at all active builds.
+                if ($isRoman) {
+                    $slotFilter = $isField ? ' AND building_field <= 18' : ' AND building_field > 18';
+                } else {
+                    $slotFilter = '';
+                }
+                $end_time = $db->fetchScalar("SELECT commence FROM building_upgrade WHERE isMaster=0 AND kid={$row['kid']}{$slotFilter} ORDER BY commence ASC LIMIT 1");
                 if ($end_time > $commence) {
                     $commence += (int)$end_time - time();
                 }
             }
-            //ignore WW here cuz it's not actually master and we got the resources first.
+            // ignore WW here cuz it's not actually master and we got the resources first.
             if ($item_id <> 40) {
                 $cost = Formulas::buildingUpgradeCosts($item_id, $level);
                 if (!$this->isResourcesAvailable($village, $cost)) {
@@ -253,11 +279,23 @@ class MasterBuilder
             }
             if ($commence <> $row['commence']) {
                 // check outrange
-                if($commence > $maxTime)
+                if ($commence > $maxTime) {
                     $commence = $maxTime;
+                }
                 $queryBatch[] = "UPDATE building_upgrade SET commence={$commence} WHERE id={$row['id']}";
             }
-            $previous_commence += $commence - time();
+    
+            // Advance the correct chain
+            $elapsed = $commence - time();
+            if ($isRoman) {
+                if ($isField) {
+                    $previous_commence_fields += $elapsed;
+                } else {
+                    $previous_commence_builds += $elapsed;
+                }
+            } else {
+                $previous_commence_fields += $elapsed;
+            }
         }
         if (sizeof($queryBatch)) {
             foreach ($queryBatch as $query) {
