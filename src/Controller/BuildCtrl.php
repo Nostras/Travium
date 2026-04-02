@@ -319,6 +319,11 @@ class BuildCtrl extends GameCtrl
         // If the building can't be upgraded at all, don't show the button.
         $currentLevel = $village->getField($fieldId)['level'];
         $maxLevel     = Formulas::buildingMaxLvl($item_id, $village->isCapital());
+        // 1e9 is returned for capital resource fields with allowResourcesToGoToMaximumPossible.
+        // A queue UI showing a billion levels is meaningless; cap to a reasonable depth.
+        if ($maxLevel >= 1e9) {
+            return null;
+        }
         if ($currentLevel >= $maxLevel) {
             return null;
         }
