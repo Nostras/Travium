@@ -320,10 +320,6 @@ class BuildCtrl extends GameCtrl
         $currentLevel = $village->getField($fieldId)['level'];
         $maxLevel     = Formulas::buildingMaxLvl($item_id, $village->isCapital());
         // 1e9 is returned for capital resource fields with allowResourcesToGoToMaximumPossible.
-        // A queue UI showing a billion levels is meaningless; cap to a reasonable depth.
-        if ($maxLevel >= 1e9) {
-            return null;
-        }
         if ($currentLevel >= $maxLevel) {
             return null;
         }
@@ -373,6 +369,12 @@ class BuildCtrl extends GameCtrl
             ['data' => ['class' => 'green build queueAll']],
             T('Buildings', 'queueAllUpgrades')
         );
+
+        // 1e9 is returned for capital resource fields with allowResourcesToGoToMaximumPossible.
+        // Queue-until has no meaning without a sensible max, so skip the picker for these.
+        if ($maxLevel >= 1e9) {
+            return $btnAll;
+        }
     
         // "Queue until" level picker — only levels reachable beyond current queued state
         $alreadyAt = $currentLevel + $village->getField($fieldId)['upgrade_state'] + $alreadyQueued;
