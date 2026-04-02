@@ -1425,7 +1425,7 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
                             array(
                                 'off' => 40,
                                 'def_i' => 35,
-                                'def_c' => 50,
+                                'def_c' => 70,
                                 'speed' => 6,
                                 'cost' =>
                                     array(
