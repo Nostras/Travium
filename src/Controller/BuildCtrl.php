@@ -315,14 +315,14 @@ class BuildCtrl extends GameCtrl
     {
         $village = Village::getInstance();
         $config  = Config::getInstance();
-
+        
         // If the building can't be upgraded at all, don't show the button.
         $currentLevel = $village->getField($fieldId)['level'];
         $maxLevel     = Formulas::buildingMaxLvl($item_id, $village->isCapital());
         if ($currentLevel >= $maxLevel) {
             return null;
         }
-
+        
         // Count how many upgrades are already queued for this field across
         // both normal and master queues.
         $alreadyQueued = 0;
@@ -336,36 +336,63 @@ class BuildCtrl extends GameCtrl
                 $alreadyQueued++;
             }
         }
-
-        // Determine total slots available: normal (1 or 2 with plus) + master builder slots.
-        $hasPlus       = $this->session->hasPlus();
-        $normalSlots   = $hasPlus ? 2 : 1;
-        $masterSlots   = $village->isWW()
-            ? $config->masterBuilder->maxTasksInWonder
-            : $config->masterBuilder->maxTasksInNoneWonder;
-        $totalSlots    = $normalSlots + $masterSlots;
-
-        // Clamp to what the building can actually absorb before hitting max level.
+    
+         // Determine total slots available: normal (1 or 2 with plus) + master builder slots.
+         $hasPlus       = $this->session->hasPlus();
+         $normalSlots   = $hasPlus ? 2 : 1;
+         $masterSlots   = $village->isWW()
+             ? $config->masterBuilder->maxTasksInWonder
+             : $config->masterBuilder->maxTasksInNoneWonder;
+         $totalSlots    = $normalSlots + $masterSlots;
+ 
+         // Clamp to what the building can actually absorb before hitting max level.
         $remainingLevels = $maxLevel - ($currentLevel + $village->getField($fieldId)['upgrade_state'] + $alreadyQueued);
         $totalSlots      = min($totalSlots, $remainingLevels + $alreadyQueued);
-
+        
         // Nothing more to queue.
         if ($alreadyQueued >= $totalSlots) {
             return null;
         }
-
+    
         $pageNamePostfix = ($item_id <= 4 ? '1' : '2');
-        $link = 'dorf' . $pageNamePostfix . '.php?a=' . $fieldId . '&q=1&c=' . $this->session->getChecker();
-
-        return getButton(
+        $checker         = $this->session->getChecker();
+    
+        // "Queue all" button (existing behaviour)
+        $linkAll = 'dorf' . $pageNamePostfix . '.php?a=' . $fieldId . '&q=1&c=' . $checker;
+        $btnAll  = getButton(
             [
                 'type'    => 'button',
                 'class'   => 'green build queueAll',
-                'onclick' => "window.location.href = '$link'; return false;",
+                'onclick' => "window.location.href = '$linkAll'; return false;",
             ],
             ['data' => ['class' => 'green build queueAll']],
             T('Buildings', 'queueAllUpgrades')
         );
+    
+        // "Queue until" level picker — only levels reachable beyond current queued state
+        $alreadyAt = $currentLevel + $village->getField($fieldId)['upgrade_state'] + $alreadyQueued;
+        $minTarget = $alreadyAt + 1; // first level that would actually add something
+    
+        if ($minTarget > $maxLevel) {
+            return $btnAll;
+        }
+    
+        $baseLink = 'dorf' . $pageNamePostfix . '.php?a=' . $fieldId . '&q=2&c=' . $checker . '&ql=';
+        $options  = '';
+        for ($lvl = $minTarget; $lvl <= $maxLevel; $lvl++) {
+            $options .= '<option value="' . $lvl . '">' . T('Buildings', 'level') . ' ' . $lvl . '</option>';
+        }
+    
+        $btnUntil = '<span class="queueUntil">'
+            . '<select class="queueUntilSelect" id="queueUntilSelect_' . $fieldId . '">' . $options . '</select>'
+            . ' <button type="button" class="green build" onclick="'
+            . 'var v=document.getElementById(\'queueUntilSelect_' . $fieldId . '\').value;'
+            . 'window.location.href=\'' . $baseLink . '\'+v; return false;">'
+            . T('Buildings', 'queueUntilLevel')
+            . '</button>'
+            . '</span>';
+    
+        return $btnAll . ' ' . $btnUntil;
     }
 
     private function getActionText($item_id = 0)

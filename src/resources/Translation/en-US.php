@@ -544,6 +544,7 @@ $Definition['Buildings']['masterBuilder']['atStartOfConstruction'] = 'At start o
 $Definition['Buildings']['buildingSites']['rallyPoint'] = 'Rallypoint site';
 $Definition['Buildings']['buildingSites']['building'] = 'Building site';
 $Definition['Buildings']['buildingSites']['WorldWonder'] = 'WW site';
+$Definition['Buildings']['queueUntilLevel'] = 'Queue until level';
 $Definition['Buildings'][1]['title'] = 'Woodcutter';
 $Definition['Buildings'][1]['desc'] = 'The woodcutter cuts down trees in order to produce lumber. The further you extend the woodcutter, the more lumber is produced';
 $Definition['Buildings'][1]['current_prod'] = 'Current production';
