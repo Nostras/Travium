@@ -1395,11 +1395,21 @@ HTML;
         } else if ($field == 39 && $item_id <> 16) {
             return false;
         }
-        if ($this->getField($field)['item_id'] > 0) {
+        $fieldAlreadyHasItem = $this->getField($field)['item_id'] > 0;
+        $isBeingBuiltByMaster = false;
+        if ($fieldAlreadyHasItem && $this->getField($field)['level'] === 0) {
+            foreach ($this->onLoadBuildings['master'] as $task) {
+                if ($task['building_field'] == $field) {
+                    $isBeingBuiltByMaster = true;
+                    break;
+                }
+            }
+        }
+        if ($fieldAlreadyHasItem && !$isBeingBuiltByMaster) {
             return false;
         }
         $workers = $this->isWorkersBusy($field <= 18);
-        if ($this->canCreateNewBuild($item_id) <> 1) {
+        if ($this->canCreateNewBuild($item_id, $isMaster) <> 1) {
             return false;
         } else if (!$isMaster && $workers['isBusy']) {
             return false;
@@ -1506,13 +1516,16 @@ HTML;
         $this->repopCropLoadings();
     }
 
-    public function canCreateNewBuild($item_id)
+    public function canCreateNewBuild($item_id, $isMaster = false)
     {
         if ($item_id == 40 && !$this->isWW()) return -1;
-        $dep = $this->helper->canCreateNewBuild($this->isCapital(),
+        $dep = $this->helper->canCreateNewBuild(
+            $this->isCapital(),
             $this->session->getRace(),
             $item_id,
-            $this->buildings);
+            $this->buildings,
+            $isMaster  // ← pass through instead of hardcoded false
+        );
         if ($item_id == 26) {
             if ($this->helper->hasPalaceAnywhere($this->get('owner'))) {
                 $dep = -1;
