@@ -3333,7 +3333,7 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
     public static function merchantCAP($race, $bid18, $alliance_bonus = 1)
     {
         $capacity = [1 => 500, 2 => 1000, 3 => 750, 5 => 500, 6 => 750, 7 => 500];
-        return round($capacity[$race] * getGameSpeed() * ((100 + ($bid18 * 10)) / 100) * $alliance_bonus);
+        return round($capacity[$race] * getGameSpeed() * ((100 + ($bid18 * ($race == 1 ? 20 : 10))) / 100) * $alliance_bonus);
     }
 
     public static function uCarry($u)
