@@ -791,7 +791,7 @@ class BuildCtrl extends GameCtrl
                 break;
             case 28:
                 $this->getValuesTable($contract, [], function ($params, $lvl) {
-                    return Formulas::TradeOfficeValue($lvl);
+                    return Formulas::TradeOfficeValue( $this->session->getRace(), $lvl);
                 });
                 break;
             case 34:

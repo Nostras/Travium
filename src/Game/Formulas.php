@@ -3735,9 +3735,9 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
         return round((100 * (pow($k, $lvl) - 1)));
     }
 
-    public static function TradeOfficeValue($lvl)
+    public static function TradeOfficeValue($race, $lvl)
     {
-        return (10 + $lvl) * 10;
+        return 100 + $lvl * ($race == 1 ? 20 : 10);
     }
 
     public static function TournamentSqValue($lvl)
