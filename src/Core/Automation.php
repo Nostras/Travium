@@ -74,20 +74,28 @@ class Automation
     public function buildComplete()
     {
         $db = DB::getInstance();
-        $m = new MasterBuilder();
-        $result = $db->query("SELECT * FROM building_upgrade WHERE commence<=" . (time()) . " ORDER BY commence ASC, id ASC LIMIT 100");
+        $m  = new MasterBuilder();
+    
+        // Step 1: complete all normal (non-master) builds that are due.
+        $result = $db->query("SELECT * FROM building_upgrade WHERE isMaster=0 AND commence<=" . time() . " ORDER BY commence ASC, id ASC LIMIT 100");
         while ($row = $result->fetch_assoc()) {
-            if ($row['isMaster']) {
-                $m->process($row);
-            } else {
-                $db->query("DELETE FROM building_upgrade WHERE id={$row['id']}");
-                if ($db->affectedRows()) {
-                    BuildingAction::upgrade($row['kid'], $row['building_field']);
-                }
+            $db->query("DELETE FROM building_upgrade WHERE id={$row['id']}");
+            if ($db->affectedRows()) {
+                BuildingAction::upgrade($row['kid'], $row['building_field']);
             }
         }
-        $db = DB::getInstance();
-        $result = $db->query("SELECT * FROM demolition WHERE end_time <= " . (time()) . " ORDER BY end_time ASC, id ASC LIMIT 50");
+    
+        // Step 2: for every village that has pending master items, greedily
+        // promote the first viable item per free slot. This runs regardless of
+        // commence time — commence is just a display estimate, not a gate.
+        $kids = $db->query("SELECT DISTINCT kid FROM building_upgrade WHERE isMaster=1");
+        while ($row = $kids->fetch_assoc()) {
+            $m->processNext((int)$row['kid']);
+        }
+    
+        // Demolitions — unchanged.
+        $db     = DB::getInstance();
+        $result = $db->query("SELECT * FROM demolition WHERE end_time <= " . time() . " ORDER BY end_time ASC, id ASC LIMIT 50");
         while ($row = $result->fetch_assoc()) {
             $db->query("DELETE FROM demolition WHERE id={$row['id']}");
             if ($db->affectedRows()) {

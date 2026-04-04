@@ -33,13 +33,15 @@ class MasterBuilder
         $buildings = $this->sortBuildings($row['kid']);
         $item_id = $buildings['buildings'][$row['building_field']]['item_id'];
         $level = $buildings['buildings'][$row['building_field']]['level'] + 1;
-        $level += (int)$db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field={$row['building_field']} AND kid={$row['kid']}");
+        $level += (int) $db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field={$row['building_field']} AND kid={$row['kid']}");
         $costs = Formulas::buildingUpgradeCosts($item_id, $level);
-        $workers = $this->isWorkersBusy($player['race'],
+        $workers = $this->isWorkersBusy(
+            $player['race'],
             $player['plus'] >= time(),
             $row['kid'],
             $row['building_field'] <= 18,
-            $item_id == 40);
+            $item_id == 40
+        );
         if ($workers['isBusy']) {
             //logError("MasterBuilder: Workers were busy.");
             return;
@@ -84,16 +86,120 @@ class MasterBuilder
         }
     }
 
+    public function processNext($kid)
+    {
+        $db = DB::getInstance();
+        ResourcesHelper::updateVillageResources($kid, true);
+
+        $village = $db->query("SELECT capital, upkeep, isWW, pop, owner, kid, wood, woodp, clay, clayp, iron, ironp, crop, cropp, maxstore, maxcrop, lastmupdate FROM vdata WHERE kid=$kid");
+        if (!$village->num_rows) {
+            $db->query("DELETE FROM building_upgrade WHERE kid=$kid AND isMaster=1");
+            return;
+        }
+        $village = $village->fetch_assoc();
+
+        $player = $db->query("SELECT aid, race, gift_gold, bought_gold, plus FROM users WHERE id={$village['owner']} LIMIT 1");
+        if (!$player->num_rows) {
+            $db->query("DELETE FROM building_upgrade WHERE kid=$kid AND isMaster=1");
+            return;
+        }
+        $player = $player->fetch_assoc();
+
+        $buildings = $this->sortBuildings($kid);
+        $config = Config::getInstance();
+        $gold = $village['isWW'] ? 0 : $config->gold->masterBuilderGold;
+
+        // Fetch ALL master items for this village in FIFO order.
+        // We iterate once; for each item we check if its slot is currently free
+        // and resources are available. isWorkersBusy() reads live DB state, so
+        // after we promote an item the slot count updates correctly for the next item.
+        $masterItems = $db->query("SELECT * FROM building_upgrade WHERE isMaster=1 AND kid=$kid ORDER BY id ASC");
+
+        while ($row = $masterItems->fetch_assoc()) {
+            $item_id = $buildings['buildings'][$row['building_field']]['item_id'];
+            $isField = ($row['building_field'] <= 18);
+
+            $workers = $this->isWorkersBusy(
+                $player['race'],
+                $player['plus'] >= time(),
+                $kid,
+                $isField,
+                $item_id == 40
+            );
+
+            // Slot for this item type is full — skip this item, keep looking.
+            if ($workers['isBusy']) {
+                continue;
+            }
+
+            $level = $buildings['buildings'][$row['building_field']]['level'] + 1;
+            $level += (int) $db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field={$row['building_field']} AND kid=$kid");
+
+            // Resources check — skip this item if unaffordable, try next.
+            if ($item_id != 40) {
+                $costs = Formulas::buildingUpgradeCosts($item_id, $level);
+                if (!$this->isResourcesAvailable($village, $costs)) {
+                    continue;
+                }
+            }
+
+            // Gold check — hard stop, clear entire queue.
+            if ($item_id != 40) {
+                if (($player['gift_gold'] + $player['bought_gold']) < $gold) {
+                    $db->query("DELETE FROM building_upgrade WHERE isMaster=1 AND kid=$kid");
+                    logError('MasterBuilder: Not enough gold.');
+                    return;
+                } else if ($gold > 0 && !GoldHelper::decreaseGold($village['owner'], $gold)) {
+                    $db->query("DELETE FROM building_upgrade WHERE isMaster=1 AND kid=$kid");
+                    logError('MasterBuilder: Unable to reduce gold.');
+                    return;
+                }
+            }
+
+            // Promote.
+            $db->query("DELETE FROM building_upgrade WHERE id={$row['id']}");
+
+            $commence = time();
+            if ($player['race'] == 1) {
+                if (!$isField && $workers['buildsNum'] > 0) {
+                    $commence = $this->getLastCommence($kid, false);
+                } else if ($isField && $workers['fieldsNum'] > 0) {
+                    $commence = $this->getLastCommence($kid, true);
+                }
+            } else {
+                $commence = $this->getLastCommence($kid);
+            }
+            $commence += Formulas::buildingUpgradeTime($item_id, $level, $buildings['mainBuildingLevel'], $village['isWW']);
+
+            $db->query("INSERT INTO building_upgrade (kid, building_field, isMaster, start_time, commence) VALUES ($kid, {$row['building_field']}, 0, " . time() . ", $commence)");
+
+            if ($item_id != 40) {
+                $costs = Formulas::buildingUpgradeCosts($item_id, $level);
+                $db->query("UPDATE vdata SET wood=wood-{$costs[0]}, clay=clay-{$costs[1]}, iron=iron-{$costs[2]}, crop=crop-{$costs[3]} WHERE kid=$kid");
+                // Refresh resources in memory so subsequent iterations see updated amounts.
+                $village['wood'] -= $costs[0];
+                $village['clay'] -= $costs[1];
+                $village['iron'] -= $costs[2];
+                $village['crop'] -= $costs[3];
+            }
+
+            // Continue the loop — there may be another free slot (e.g. Romans with
+            // both field and build slots open) that a later item can fill.
+        }
+
+        $this->updateCommence($kid, false);
+    }
+
     private function getLastCommence($kid, ?bool $isField = null)
     {
         $db = DB::getInstance();
         $filter = '';
-        if ($isField === true)  $filter = ' AND building_field <= 18';
-        if ($isField === false) $filter = ' AND building_field > 18';
-        $commence = $db->fetchScalar(
-            "SELECT commence FROM building_upgrade WHERE isMaster=0 AND kid=$kid{$filter} ORDER BY commence DESC LIMIT 1"
-        );
-        return $commence !== false ? (int)$commence : time();
+        if ($isField === true)
+            $filter = ' AND building_field <= 18';
+        if ($isField === false)
+            $filter = ' AND building_field > 18';
+        $commence = $db->fetchScalar("SELECT commence FROM building_upgrade WHERE kid=$kid AND isMaster=0{$filter} ORDER BY commence DESC LIMIT 1");
+        return $commence !== false ? (int) $commence : time();
     }
 
     private function sortBuildings($kid)
@@ -105,7 +211,7 @@ class MasterBuilder
         for ($i = 1; $i <= 40; $i++) {
             $whole_village_buildings[$i] = [
                 'item_id' => $buildings_db['f' . $i . 't'],
-                'level'   => $buildings_db['f' . $i],
+                'level' => $buildings_db['f' . $i],
             ];
             if ($whole_village_buildings[$i]['item_id'] == 15) {
                 $mainBuildingLevel = $whole_village_buildings[$i]['level'];
@@ -113,10 +219,10 @@ class MasterBuilder
         }
         $whole_village_buildings[99] = [
             'item_id' => $buildings_db['f99t'],
-            'level'   => $buildings_db['f99'],
+            'level' => $buildings_db['f99'],
         ];
         return [
-            'buildings'         => $whole_village_buildings,
+            'buildings' => $whole_village_buildings,
             'mainBuildingLevel' => $mainBuildingLevel,
         ];
     }
@@ -135,16 +241,16 @@ class MasterBuilder
         }
         if ($race == 1) {
             return [
-                'fieldsNum'  => $workers['fieldsNum'],
-                'buildsNum'  => $workers['buildsNum'],
-                'isBusy'     => (($isField) ? ($workers['fieldsNum'] >= $maxTasks) : ($workers['buildsNum'] >= $maxTasks)) || ($workers['fieldsNum'] + $workers['buildsNum']) >= 3,
+                'fieldsNum' => $workers['fieldsNum'],
+                'buildsNum' => $workers['buildsNum'],
+                'isBusy' => (($isField) ? ($workers['fieldsNum'] >= $maxTasks) : ($workers['buildsNum'] >= $maxTasks)) || ($workers['fieldsNum'] + $workers['buildsNum']) >= 3,
                 'isPlusUsed' => ($hasPlus ? ($isField ? ($workers['fieldsNum'] > 0) : ($workers['buildsNum'] > 0)) : FALSE),
             ];
         }
         return [
-            'fieldsNum'  => $workers['fieldsNum'],
-            'buildsNum'  => $workers['buildsNum'],
-            'isBusy'     => ($workers['buildsNum'] + $workers['fieldsNum']) >= $maxTasks,
+            'fieldsNum' => $workers['fieldsNum'],
+            'buildsNum' => $workers['buildsNum'],
+            'isBusy' => ($workers['buildsNum'] + $workers['fieldsNum']) >= $maxTasks,
             'isPlusUsed' => ($hasPlus ? (($workers['buildsNum'] + $workers['fieldsNum']) > 0) : FALSE),
         ];
     }
@@ -193,24 +299,24 @@ class MasterBuilder
         if (!$village['isWW']) {
             $wwLevel = -1;
         } else {
-            $onLoadLevels = (int)$db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field=99 AND kid=$kid");
-            $wwLevel = $buildings['buildings'][99]['level'] + (int)$onLoadLevels;
+            $onLoadLevels = (int) $db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field=99 AND kid=$kid");
+            $wwLevel = $buildings['buildings'][99]['level'] + (int) $onLoadLevels;
         }
-    
+
         // Romans have two independent worker slots (fields outside / builds inside),
         // so we track a separate scheduling chain for each.
         // All other races have one shared slot.
         $isRoman = ($player['race'] == 1);
         $previous_commence_fields = 0; // accumulator for building_field <= 18 (outside)
         $previous_commence_builds = 0; // accumulator for building_field >  18 (inside)
-    
+
         $queryBatch = [];
         while ($row = $masterBuilders->fetch_assoc()) {
             $item_id = $buildings['buildings'][$row['building_field']]['item_id'];
             $level = $buildings['buildings'][$row['building_field']]['level'] + 1;
-            $level += (int)$db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field={$row['building_field']} AND kid=$kid");
+            $level += (int) $db->fetchScalar("SELECT COUNT(id) FROM building_upgrade WHERE isMaster=0 AND building_field={$row['building_field']} AND kid=$kid");
             $cu = Formulas::buildingCropConsumption($item_id, $level, $village['isWW']);
-    
+
             // Determine which chain this item belongs to
             $isField = ($row['building_field'] <= 18);
             if ($isRoman) {
@@ -218,45 +324,59 @@ class MasterBuilder
             } else {
                 $previous_commence = $previous_commence_fields; // single shared chain for non-Romans
             }
-    
+
             $commence = time() + $previous_commence;
-    
+
             if ($level > Formulas::buildingMaxLvl($item_id, $village['capital'])) {
                 $this->deleteProcess($row['id'], $kid, $row['building_field'], $level);
                 continue;
             }
-            if ($row['building_field'] > 18 && $level == 1 && $helper->canCreateNewBuild($village['capital'],
+            if (
+                $row['building_field'] > 18 && $level == 1 && $helper->canCreateNewBuild(
+                    $village['capital'],
                     $player['race'],
                     $item_id,
                     $buildings['buildings'],
-                    true) <> 1) {
+                    true
+                ) <> 1
+            ) {
                 $this->deleteProcess($row['id'], $kid, $row['building_field'], $level);
                 continue;
             }
-            if ($helper->checkArtifactDependencies($player['aid'],
+            if (
+                $helper->checkArtifactDependencies(
+                    $player['aid'],
                     $village['owner'],
                     $kid,
                     $item_id,
                     $village['isWW'],
-                    $wwLevel) <> 0) {
+                    $wwLevel
+                ) <> 0
+            ) {
                 $this->deleteProcess($row['id'], $kid, $row['building_field'], $level);
                 continue;
             }
             $freeCrop = $village['cropp'] + $village['upkeep'] - $this->getCropLoading($row['kid'], $village['isWW'], $buildings['buildings']);
-            if ($helper->checkDependencies($item_id,
+            if (
+                $helper->checkDependencies(
+                    $item_id,
                     $level,
                     $village['isWW'],
                     $freeCrop,
                     $village['maxstore'],
-                    $village['maxcrop']) <> 0) {
+                    $village['maxcrop']
+                ) <> 0
+            ) {
                 $this->deleteProcess($row['id'], $kid, $row['building_field'], $level);
                 continue;
             }
-            $workers = $this->isWorkersBusy($player['race'],
+            $workers = $this->isWorkersBusy(
+                $player['race'],
                 $player['plus'] >= time(),
                 $row['kid'],
                 $item_id <= 4,
-                $item_id == 40);
+                $item_id == 40
+            );
             if ($workers['isBusy']) {
                 // For Romans, only look at active builds in the same slot (inside vs outside).
                 // For others, look at all active builds.
@@ -267,7 +387,7 @@ class MasterBuilder
                 }
                 $end_time = $db->fetchScalar("SELECT commence FROM building_upgrade WHERE isMaster=0 AND kid={$row['kid']}{$slotFilter} ORDER BY commence ASC LIMIT 1");
                 if ($end_time > $commence) {
-                    $commence += (int)$end_time - time();
+                    $commence += (int) $end_time - time();
                 }
             }
             // ignore WW here cuz it's not actually master and we got the resources first.
@@ -284,7 +404,7 @@ class MasterBuilder
                 }
                 $queryBatch[] = "UPDATE building_upgrade SET commence={$commence} WHERE id={$row['id']}";
             }
-    
+
             // Advance the correct chain
             $elapsed = $commence - time();
             if ($isRoman) {
