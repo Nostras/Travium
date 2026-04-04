@@ -327,11 +327,11 @@ class BuildCtrl extends GameCtrl
         // Count how many upgrades are already queued for this field across
         // both normal and master queues.
         $alreadyQueued = 0;
-        foreach ($village->onLoadBuildings['normal'] as $task) {
-            if ($task['building_field'] == $fieldId) {
-                $alreadyQueued++;
-            }
-        }
+        // foreach ($village->onLoadBuildings['normal'] as $task) {
+        //     if ($task['building_field'] == $fieldId) {
+        //         $alreadyQueued++;
+        //     }
+        // }
         foreach ($village->onLoadBuildings['master'] as $task) {
             if ($task['building_field'] == $fieldId) {
                 $alreadyQueued++;

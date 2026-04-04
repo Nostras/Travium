@@ -102,16 +102,13 @@ class Dorf2Ctrl extends GameCtrl
             
                     // Count how many levels are already committed (normal + master queues)
                     $getCurrentQueued = function() use ($village, $field) {
-                        $count = 0;
-                        foreach ($village->onLoadBuildings['normal'] as $t) {
-                            if ($t['building_field'] == $field) $count++;
-                        }
+                        $masterCount = 0;
                         foreach ($village->onLoadBuildings['master'] as $t) {
-                            if ($t['building_field'] == $field) $count++;
+                            if ($t['building_field'] == $field) $masterCount++;
                         }
                         return $village->getField($field)['level']
                              + $village->getField($field)['upgrade_state']
-                             + $count;
+                             + $masterCount;
                     };
             
                     // Fill normal slots first
