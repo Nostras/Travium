@@ -296,13 +296,13 @@ class Village
             }
         }
         $minResourceLevel = min($resources_levels);
-        if ($quest->getQuest("economy", 4) == 0 && $minResourceLevel == 1) {
+        if ($quest->getQuest("economy", 4) == 0 && $minResourceLevel >= 1) {
             $quest->setQuestBitwise("economy", 4, 1);
         }
-        if ($quest->getQuest("economy", 8) == 0 && $minResourceLevel == 2) {
+        if ($quest->getQuest("economy", 8) == 0 && $minResourceLevel >= 2) {
             $quest->setQuestBitwise("economy", 8, 1);
         }
-        if ($quest->getQuest("economy", 12) == 0 && $minResourceLevel == 5) {
+        if ($quest->getQuest("economy", 12) == 0 && $minResourceLevel >= 5) {
             $quest->setQuestBitwise("economy", 12, 1);
         }
     }
