@@ -55,19 +55,19 @@ class RegisterCtrl extends ApiAbstractCtrl
     public function activate()
     {
         global $globalConfig;
-        $needs = ['gameWorld', 'activationCode', 'password', 'captcha'];
+        $needs = ['gameWorld', 'activationCode', 'password']; //, 'captcha'];
         foreach ($needs as $k) {
             if (!isset($this->payload[$k])) {
                 throw new MissingParameterException($k);
             }
         }
         $this->response['success'] = false;
-        $recaptcha = new \ReCaptcha\ReCaptcha($globalConfig['staticParameters']['recaptcha_private_key']);
-        $resp = $recaptcha->verify($this->payload['captcha'], WebService::ipAddress());
-        if (!$resp->isSuccess()) {
-            $this->response['fields']['captcha'] = 'invalidCaptcha';
-            return;
-        }
+        // $recaptcha = new \ReCaptcha\ReCaptcha($globalConfig['staticParameters']['recaptcha_private_key']);
+        // $resp = $recaptcha->verify($this->payload['captcha'], WebService::ipAddress());
+        // if (!$resp->isSuccess()) {
+        //     $this->response['fields']['captcha'] = 'invalidCaptcha';
+        //     return;
+        // }
         $activation = $this->getActivationByActivationCode((int)$this->payload['gameWorld'], $this->payload['activationCode']);
         if ($activation) {
             $password = $this->payload['password'];

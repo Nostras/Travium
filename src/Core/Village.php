@@ -296,13 +296,13 @@ class Village
             }
         }
         $minResourceLevel = min($resources_levels);
-        if ($quest->getQuest("economy", 4) == 0 && $minResourceLevel == 1) {
+        if ($quest->getQuest("economy", 4) == 0 && $minResourceLevel >= 1) {
             $quest->setQuestBitwise("economy", 4, 1);
         }
-        if ($quest->getQuest("economy", 8) == 0 && $minResourceLevel == 2) {
+        if ($quest->getQuest("economy", 8) == 0 && $minResourceLevel >= 2) {
             $quest->setQuestBitwise("economy", 8, 1);
         }
-        if ($quest->getQuest("economy", 12) == 0 && $minResourceLevel == 5) {
+        if ($quest->getQuest("economy", 12) == 0 && $minResourceLevel >= 5) {
             $quest->setQuestBitwise("economy", 12, 1);
         }
     }
@@ -795,7 +795,7 @@ HTML;
             return false;
         } else if ($nextLevel > Formulas::buildingMaxLvl($item_id, $this->isCapital())) { //reached max lvl
             return false;
-        } else if (($isMaster && $this->isWW() && $item_id <> 40) || ($isMaster && $workers['isMasterBusy'])) { //can just use masterBuilder for WW :|
+        } else if ($isMaster && $workers['isMasterBusy']) {
             return false;
         } else if ($this->checkArtifactDependencies($item_id) <> 0) {
             return false;
@@ -1395,11 +1395,21 @@ HTML;
         } else if ($field == 39 && $item_id <> 16) {
             return false;
         }
-        if ($this->getField($field)['item_id'] > 0) {
+        $fieldAlreadyHasItem = $this->getField($field)['item_id'] > 0;
+        $isBeingBuiltByMaster = false;
+        if ($fieldAlreadyHasItem && $this->getField($field)['level'] === 0) {
+            foreach ($this->onLoadBuildings['master'] as $task) {
+                if ($task['building_field'] == $field) {
+                    $isBeingBuiltByMaster = true;
+                    break;
+                }
+            }
+        }
+        if ($fieldAlreadyHasItem && !$isBeingBuiltByMaster) {
             return false;
         }
         $workers = $this->isWorkersBusy($field <= 18);
-        if ($this->canCreateNewBuild($item_id) <> 1) {
+        if ($this->canCreateNewBuild($item_id, $isMaster) <> 1) {
             return false;
         } else if (!$isMaster && $workers['isBusy']) {
             return false;
@@ -1506,13 +1516,16 @@ HTML;
         $this->repopCropLoadings();
     }
 
-    public function canCreateNewBuild($item_id)
+    public function canCreateNewBuild($item_id, $isMaster = false)
     {
         if ($item_id == 40 && !$this->isWW()) return -1;
-        $dep = $this->helper->canCreateNewBuild($this->isCapital(),
+        $dep = $this->helper->canCreateNewBuild(
+            $this->isCapital(),
             $this->session->getRace(),
             $item_id,
-            $this->buildings);
+            $this->buildings,
+            $isMaster  // ← pass through instead of hardcoded false
+        );
         if ($item_id == 26) {
             if ($this->helper->hasPalaceAnywhere($this->get('owner'))) {
                 $dep = -1;

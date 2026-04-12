@@ -85,6 +85,7 @@ class LoginCtrl extends OutOfGameCtrl
         if ($this->isAdmin && time() < $config->game->start_time) {
             $this->beforeGame();
         }
+        logError(sprintf("[login] time=%d, start time=%d, maintenance=%u, isAdmin=%u", time(), $config->game->start_time, $config->dynamic->maintenance, $this->isAdmin));
         if ((time() >= $config->game->start_time && $config->dynamic->maintenance == FALSE) || $this->isAdmin) {
             $this->loginAction();
         } else if (!$this->isAdmin) {
@@ -118,7 +119,7 @@ class LoginCtrl extends OutOfGameCtrl
         $this->LoginView->vars['lowRes'] = (bool)isset($_POST['lowRes']);
         $this->LoginView->vars['userError'] = $this->LoginView->vars['pwError'] = '';
         $this->LoginView->vars['captchaError'] = '';
-        $this->LoginView->vars['captcha'] = $this->isAdmin || getDisplay("requireCaptchaLogin");
+        $this->LoginView->vars['captcha'] = false; //$this->isAdmin || getDisplay("requireCaptchaLogin");
         $this->LoginView->vars['success'] = FALSE;
         $this->LoginView->vars['public_key'] = $globalConfig['staticParameters']['recaptcha_public_key'];
         $this->LoginView->vars['newPassErr'] = '';

@@ -323,6 +323,9 @@ use Game\ExtraModules;
                     <?php endif; ?>
                     <?php endif; ?>
                     <?= $vars['contractLink']['master']; ?>
+                    <?php if (!empty($vars['contractLink']['queueAll'])): ?>
+                        <?= $vars['contractLink']['queueAll']; ?>
+                    <?php endif; ?>
                     <div class="inlineIcon duration"><i class="clock_medium"></i><span class="value "><?= $vars['timeInString']; ?></span></div>
                     <?php if (isset($vars['contractLink']['waitLoop']) && $vars['contractLink']['waitLoop']): ?>
                         <span class="none">(<?= T("Buildings", "waitLoop"); ?>)</span>

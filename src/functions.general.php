@@ -85,6 +85,7 @@ function ConvertToUTF8($text)
 
 function recaptcha_check_answer()
 {
+    return true;
     global $globalConfig;
     if (isset($_POST["g-recaptcha-response"])) {
         $reCaptcha = new ReCaptcha($globalConfig['staticParameters']['recaptcha_private_key']);
@@ -99,6 +100,7 @@ function recaptcha_check_answer()
 
 function recaptcha_get_html($callback = null)
 {
+    return '';
     global $globalConfig;
     $HTML = '<script src=\'https://www.google.com/recaptcha/api.js?hl=en\'></script>';
     $HTML .= '<div class="g-recaptcha" ' . (empty($callback) ? '' : 'data-callback="' . $callback . '" ') . 'data-lang="en" data-theme="custom" data-sitekey="' . $globalConfig['staticParameters']['recaptcha_public_key'] . '"></div>';

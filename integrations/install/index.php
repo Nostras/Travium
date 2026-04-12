@@ -354,13 +354,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 '$config->game->protection_time = ' . ((int)$input['protectionHours'] * 3600) . ';',
                 '$config->extraSettings->generalOptions->finishTraining->enabled = ' . ($input['instantFinishTraining'] ? 'true' : 'false') . ';',
                 '$config->extraSettings->generalOptions->buyAdventure->enabled = ' . ($input['buyAdventure'] ? 'true' : 'false') . ';',
+                // In here so the user can disable this 
+                '$config->custom->nopaytowin = true;',
+                '$config->custom->serverIsFreeGold = true;'
             ];
             file_put_contents($includePath . 'config.custom.php', implode("\n", $configCustom) . "\n");
 
             // Run installer + updater via CLI
             $adminPass = $input['admin_password'];
-            $cmd1 = "/usr/bin/php7.3 $installerFile install " . escapeshellarg($adminPass);
-            $cmd2 = "/usr/bin/php7.3 $updateFile";
+            $cmd1 = "/usr/bin/php7.3 " . escapeshellarg($installerFile) . " install " . escapeshellarg($adminPass);
+            $cmd2 = "/usr/bin/php7.3 " . escapeshellarg($updateFile) . " --new-installation";
 
             [$out1,$code1] = run_cmd($cmd1);
             [$out2,$code2] = run_cmd($cmd2);

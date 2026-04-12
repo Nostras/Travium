@@ -74,20 +74,28 @@ class Automation
     public function buildComplete()
     {
         $db = DB::getInstance();
-        $m = new MasterBuilder();
-        $result = $db->query("SELECT * FROM building_upgrade WHERE commence<=" . (time()) . " ORDER BY commence ASC, id ASC LIMIT 100");
+        $m  = new MasterBuilder();
+    
+        // Step 1: complete all normal (non-master) builds that are due.
+        $result = $db->query("SELECT * FROM building_upgrade WHERE isMaster=0 AND commence<=" . time() . " ORDER BY commence ASC, id ASC LIMIT 100");
         while ($row = $result->fetch_assoc()) {
-            if ($row['isMaster']) {
-                $m->process($row);
-            } else {
-                $db->query("DELETE FROM building_upgrade WHERE id={$row['id']}");
-                if ($db->affectedRows()) {
-                    BuildingAction::upgrade($row['kid'], $row['building_field']);
-                }
+            $db->query("DELETE FROM building_upgrade WHERE id={$row['id']}");
+            if ($db->affectedRows()) {
+                BuildingAction::upgrade($row['kid'], $row['building_field']);
             }
         }
-        $db = DB::getInstance();
-        $result = $db->query("SELECT * FROM demolition WHERE end_time <= " . (time()) . " ORDER BY end_time ASC, id ASC LIMIT 50");
+    
+        // Step 2: for every village that has pending master items, greedily
+        // promote the first viable item per free slot. This runs regardless of
+        // commence time — commence is just a display estimate, not a gate.
+        $kids = $db->query("SELECT DISTINCT kid FROM building_upgrade WHERE isMaster=1");
+        while ($row = $kids->fetch_assoc()) {
+            $m->processNext((int)$row['kid']);
+        }
+    
+        // Demolitions — unchanged.
+        $db     = DB::getInstance();
+        $result = $db->query("SELECT * FROM demolition WHERE end_time <= " . time() . " ORDER BY end_time ASC, id ASC LIMIT 50");
         while ($row = $result->fetch_assoc()) {
             $db->query("DELETE FROM demolition WHERE id={$row['id']}");
             if ($db->affectedRows()) {
@@ -150,7 +158,7 @@ class Automation
     {
         $db = DB::getInstance();
         $config = Config::getInstance();
-        $donate_reset_interval = $config->allianceBonus->donate_reset_interval;
+        $donate_reset_interval = (int) ($config->allianceBonus->donate_reset_interval / getGameSpeed());
         $lastDonateReset = $db->fetchScalar("SELECT lastAllianceContributeReset FROM config");
         if ($lastDonateReset < $config->game->start_time) {
             $lastDonateReset = $config->game->start_time;
@@ -414,7 +422,9 @@ class Automation
         $db->query("DELETE FROM log_ip WHERE time < " . (time() - 15 * 86400));
         $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (deleted=1 AND time < ($halfDay))) LIMIT 20000");
         if (getCustom("removeReports")) {
-            $XY = time() - getCustom("removeReports");
+            // Minimum 7 days real-world retention regardless of speed; sqrt scaling for higher base values
+            $scaledRetention = max(604800, (int) (getCustom("removeReports") / sqrt(getGameSpeed())));
+            $XY = time() - $scaledRetention;
             $db->query("DELETE FROM ndata WHERE non_deletable=0 AND (uid=1 OR (archive=0 AND time < $XY)) LIMIT 20000");
         }
         $types = implode(",", [
@@ -422,7 +432,10 @@ class Automation
             NoticeHelper::TYPE_WON_DEFENSE_WITHOUT_LOSSES,
         ]);
         if (getCustom("removeReportsBelow30Percent")) {
-            $db->query("DELETE FROM ndata WHERE non_deletable=0 AND type IN($types) AND time < $tenMin AND losses <= 30 AND archive=0 LIMIT 20000");
+            // 2 days base, sqrt scaled, minimum 24h real-world retention
+            $scaledBelow30 = max(86400, (int) (172800 / sqrt(getGameSpeed())));
+            $reportWindow = time() - $scaledBelow30;
+            $db->query("DELETE FROM ndata WHERE non_deletable=0 AND type IN($types) AND time < $reportWindow AND losses <= 30 AND archive=0 LIMIT 20000");
         }
         $db->query("DELETE FROM mdata WHERE viewed=1 AND time < " . (time() - 2 * 86400));
         //if(filesize(INCLUDE_PATH . "error_log.log")) {
@@ -433,7 +446,8 @@ class Automation
     private function addFakeUsers()
     {
         $fakeUsersCount = Config::getProperty("fakeUsersCount");
-        if ($fakeUsersCount <= 0) return;
+        if ($fakeUsersCount <= 0)
+            return;
         $sqlite = new SQLite3(INCLUDE_PATH . "schema/users.sqlite");
         $stmt = $sqlite->query("SELECT username FROM users ORDER BY RANDOM() LIMIT $fakeUsersCount");
         $users = [];
@@ -449,7 +463,7 @@ class Automation
     public function setUpNewServer()
     {
         $db = DB::getInstance();
-        $installationTime = (int)$db->fetchScalar("SELECT installationTime FROM config");
+        $installationTime = (int) $db->fetchScalar("SELECT installationTime FROM config");
         if ($installationTime == 0 || (time() - $installationTime) < 120) {
             return;
         }
@@ -508,8 +522,10 @@ class Automation
                 //$m->addInfo(0, 1, 10, '', $conf->timers->AutoFinishTime - 3 * 86400, $conf->timers->AutoFinishTime);
             }
             //(new NatarsModel())->createLotsOfNatarsVillages(max(min(2*$conf->game->speed, 600), 300));
-            Notification::notify("System notification",
-                sprintf("Game server %s started.", Config::getProperty("settings", "serverName")));
+            Notification::notify(
+                "System notification",
+                sprintf("Game server %s started.", Config::getProperty("settings", "serverName"))
+            );
             Log::addLog(0, "Server started", "Game server is now started.");
         }
     }
@@ -555,14 +571,38 @@ class Automation
 
     public function checkAutoFinish()
     {
-        if (Config::getProperty("timers", "WWConstructStartTime") < 10 || Config::getProperty("timers", "AutoFinishTime") <= 10) {
+        $wwConstructStart = Config::getProperty("timers", "WWConstructStartTime");
+        $autoFinishTime   = Config::getProperty("timers", "AutoFinishTime");
+        $wwUpLvlInterval  = Config::getProperty("timers", "WWUpLvlInterval");
+        $delayTime        = Config::getInstance()->dynamic->delayTime ?? 'PROPERTY_MISSING';
+    
+        // logError(sprintf(
+        //     "[checkAutoFinish] now=%d | WWConstructStartTime=%s | AutoFinishTime=%s | WWUpLvlInterval=%s | delayTime=%s",
+        //     time(),
+        //     var_export($wwConstructStart, true),
+        //     var_export($autoFinishTime, true),
+        //     var_export($wwUpLvlInterval, true),
+        //     var_export($delayTime, true)
+        // ));
+    
+        if ($wwConstructStart < 10 || $autoFinishTime <= 10) {
+            // logError("[checkAutoFinish] EARLY RETURN — guard failed (WWConstructStartTime=$wwConstructStart, AutoFinishTime=$autoFinishTime)");
             return;
         }
-        $db = DB::getInstance();
+    
+        $db   = DB::getInstance();
         $stmt = $db->query("SELECT serverFinished, WWAlertSent FROM config");
-        if (!$stmt->num_rows) return;
+        if (!$stmt->num_rows)
+            return;
         $stmt = $stmt->fetch_assoc();
-        if (!$stmt['WWAlertSent'] && time() > Config::getProperty("timers", "WWConstructStartTime")) {
+    
+        // logError(sprintf(
+        //     "[checkAutoFinish] serverFinished=%s | WWAlertSent=%s",
+        //     var_export($stmt['serverFinished'], true),
+        //     var_export($stmt['WWAlertSent'], true)
+        // ));
+    
+        if (!$stmt['WWAlertSent'] && time() > $wwConstructStart) {
             $db->query("UPDATE config SET WWAlertSent=1");
             $m = new PublicMsgModel();
             $m->haveNewMessage('[NatarsAreBuildingWW]');
@@ -570,13 +610,18 @@ class Automation
         $config = Config::getInstance();
         if (!$stmt['serverFinished']) {
             $wwLevel = floor(max(time() - $config->timers->WWConstructStartTime, 0) / $config->timers->WWUpLvlInterval);
+            // logError("[checkAutoFinish] wwLevel=$wwLevel | f99kid=" . Formulas::xy2kid(0, 0));
             if ($wwLevel > 0) {
                 $db->query("UPDATE fdata SET f99=IF($wwLevel>100, 100, $wwLevel) WHERE kid=" . Formulas::xy2kid(0, 0));
             }
             if ($wwLevel >= 100) {
+                // logError("[checkAutoFinish] Calling finishTheGame(2) — wwLevel>=100");
                 (new AutomationModel())->finishTheGame(2);
-            } else if (time() >= Config::getProperty("timers", "AutoFinishTime")) {
+            } else if (time() >= $autoFinishTime) {
+                // logError("[checkAutoFinish] Calling finishTheGame(2) — AutoFinishTime passed");
                 (new AutomationModel())->finishTheGame(2);
+            } else {
+                // logError(sprintf("[checkAutoFinish] Not finishing yet — wwLevel=%d, time-to-AutoFinish=%ds", $wwLevel, $autoFinishTime - time()));
             }
         }
     }
@@ -585,7 +630,8 @@ class Automation
     {
         $db = DB::getInstance();
         $dailyGold = Config::getProperty("gold", "dailyGold");
-        if ($dailyGold <= 0) return;
+        if ($dailyGold <= 0)
+            return;
         $lastDailyGold = $db->fetchScalar("SELECT lastDailyGold FROM config");
         if ($lastDailyGold == 0) {
             $lastDailyGold = Config::getProperty("game", "start_time");
@@ -610,9 +656,11 @@ class Automation
     {
         $db = DB::getInstance();
         $configDB = $db->query("SELECT serverFinished, finishStatusSet FROM config LIMIT 1");
-        if (!$configDB->num_rows) return;
+        if (!$configDB->num_rows)
+            return;
         $configDB = $configDB->fetch_assoc();
-        if (!$configDB['serverFinished'] || $configDB['finishStatusSet']) return;
+        if (!$configDB['serverFinished'] || $configDB['finishStatusSet'])
+            return;
         $db->query("UPDATE config SET finishStatusSet=1");
         $resultCode = $configDB['serverFinished'];
         $config = Config::getInstance();
@@ -626,7 +674,8 @@ class Automation
         if (Config::getAdvancedProperty("voucherEnabled")) {
             $users = $db->query("SELECT id, name, email, bought_gold FROM users WHERE email_verified=1 AND id>2 AND bought_gold>0 AND access=1 AND hidden=0");
             while ($row = $users->fetch_assoc()) {
-                if ($row['bought_gold'] <= 0) continue;
+                if ($row['bought_gold'] <= 0)
+                    continue;
                 $automationModel->addVoucher($row['email'], floor($row['bought_gold'] * (100 - Config::getProperty("gold", "voucherTaxPercent")) / 100), "remaining", sprintf('%s-%s', $row['id'], $row['name']));
             }
             $db->query("UPDATE users SET bought_gold=0");
@@ -645,10 +694,12 @@ class Automation
                 $result = $db->query("SELECT id, name, email, email_verified FROM users WHERE aid={$uData['aid']} AND id!={$uData['id']} AND total_pop >= $minPop AND access=1 ORDER BY total_pop DESC LIMIT $count");
                 while ($row = $result->fetch_assoc()) {
                     if ($row['email_verified'] == 1) {
-                        $automationModel->addVoucher($row['email'],
+                        $automationModel->addVoucher(
+                            $row['email'],
                             $config->bonus->bonusGoldTopAlliance,
                             'winnerAlliance',
-                            sprintf('%s-%s', $row['id'], $row['name']));
+                            sprintf('%s-%s', $row['id'], $row['name'])
+                        );
                     }
                 }
             }
@@ -665,15 +716,19 @@ class Automation
                         $uData = $uData->fetch_assoc();
                         if ($uData['email_verified'] == 1) {
                             if ($rank == 2 && $config->bonus->bonusGoldSecondWinner) {
-                                $automationModel->addVoucher($uData['email'],
+                                $automationModel->addVoucher(
+                                    $uData['email'],
                                     $config->bonus->bonusGoldSecondWinner,
                                     '2ndWinner',
-                                    sprintf('[%s] %s', $uData['id'], $uData['name']));
+                                    sprintf('[%s] %s', $uData['id'], $uData['name'])
+                                );
                             } else if ($rank == 3 && $config->bonus->bonusGoldThirdWinner) {
-                                $automationModel->addVoucher($uData['email'],
+                                $automationModel->addVoucher(
+                                    $uData['email'],
                                     $config->bonus->bonusGoldThirdWinner,
                                     '3rdWinner',
-                                    sprintf('[%s] %s', $uData['id'], $uData['name']));
+                                    sprintf('[%s] %s', $uData['id'], $uData['name'])
+                                );
                             }
                         }
                     }
@@ -686,10 +741,12 @@ class Automation
             if ($topAttacker->num_rows) {
                 $topAttacker = $topAttacker->fetch_assoc();
                 if ($topAttacker['email_verified'] == 1) {
-                    $automationModel->addVoucher($topAttacker['email'],
+                    $automationModel->addVoucher(
+                        $topAttacker['email'],
                         $config->bonus->bonusGoldTopOff,
                         'topOff',
-                        sprintf('[%s] %s', $topAttacker['id'], $topAttacker['name']));
+                        sprintf('[%s] %s', $topAttacker['id'], $topAttacker['name'])
+                    );
                 }
             }
         }
@@ -698,10 +755,12 @@ class Automation
             if ($topDefender->num_rows) {
                 $topDefender = $topDefender->fetch_assoc();
                 if ($topDefender['email_verified'] == 1) {
-                    $automationModel->addVoucher($topDefender['email'],
+                    $automationModel->addVoucher(
+                        $topDefender['email'],
                         $config->bonus->bonusGoldTopDef,
                         'topDef',
-                        sprintf('[%s] %s', $topDefender['id'], $topDefender['name']));
+                        sprintf('[%s] %s', $topDefender['id'], $topDefender['name'])
+                    );
                 }
             }
         }
@@ -710,10 +769,12 @@ class Automation
             if ($topClimber->num_rows) {
                 $topClimber = $topClimber->fetch_assoc();
                 if ($topClimber['email_verified'] == 1) {
-                    $automationModel->addVoucher($topClimber['email'],
+                    $automationModel->addVoucher(
+                        $topClimber['email'],
                         $config->bonus->bonusGoldTopClimber,
                         'topClimber',
-                        sprintf('[%s] %s', $topClimber['id'], $topClimber['name']));
+                        sprintf('[%s] %s', $topClimber['id'], $topClimber['name'])
+                    );
                 }
             }
         }
@@ -722,10 +783,12 @@ class Automation
             if ($topClimber->num_rows) {
                 $topClimber = $topClimber->fetch_assoc();
                 if ($topClimber['email_verified'] == 1) {
-                    $automationModel->addVoucher($topClimber['email'],
+                    $automationModel->addVoucher(
+                        $topClimber['email'],
                         $config->bonus->bonusGoldTopOffHammer,
                         'topOffHammer',
-                        sprintf('[%s] %s', $topClimber['id'], $topClimber['name']));
+                        sprintf('[%s] %s', $topClimber['id'], $topClimber['name'])
+                    );
                 }
             }
         }
@@ -734,10 +797,12 @@ class Automation
             if ($topClimber->num_rows) {
                 $topClimber = $topClimber->fetch_assoc();
                 if ($topClimber['email_verified'] == 1) {
-                    $automationModel->addVoucher($topClimber['email'],
+                    $automationModel->addVoucher(
+                        $topClimber['email'],
                         $config->bonus->bonusGoldTopDefHammer,
                         'topDefHammer',
-                        sprintf('[%s] %s', $topClimber['id'], $topClimber['name']));
+                        sprintf('[%s] %s', $topClimber['id'], $topClimber['name'])
+                    );
                 }
 
             }
@@ -762,12 +827,14 @@ class Automation
                     $alliance['tag'] = $alliance['name'] = '';
                 }
                 if ($info['email_verified'] == 1) {
-                    ClubApi::addMedal($info['name'],
+                    ClubApi::addMedal(
+                        $info['name'],
                         $info['race'],
                         $info['email'],
                         [$info['countryFlag'], $row['f99'], $alliance['name'], $alliance['tag']],
                         $x,
-                        $hidden);
+                        $hidden
+                    );
                 }
                 ++$x;
             }
@@ -776,12 +843,14 @@ class Automation
         $result = $db->query("SELECT id, name, email, email_verified, race, total_attack_points, countryFlag FROM users WHERE id>2 AND hidden=0 AND access=1 ORDER BY total_attack_points DESC LIMIT 3");
         while ($row = $result->fetch_assoc()) {
             if ($row['email_verified'] == 1) {
-                ClubApi::addMedal($row['name'],
+                ClubApi::addMedal(
+                    $row['name'],
                     $row['race'],
                     $row['email'],
                     [$row['countryFlag'], $row['total_attack_points']],
                     ++$x,
-                    $hidden);
+                    $hidden
+                );
             }
         }
         $x = 8 - 1;
@@ -789,24 +858,28 @@ class Automation
         while ($row = $result->fetch_assoc()) {
             if ($row['email_verified'] == 1) {
 
-                ClubApi::addMedal($row['name'],
+                ClubApi::addMedal(
+                    $row['name'],
                     $row['race'],
                     $row['email'],
                     [$row['countryFlag'], $row['total_defense_points']],
                     ++$x,
-                    $hidden);
+                    $hidden
+                );
             }
         }
         $x = 12 - 1;
         $result = $db->query("SELECT id, name, email, email_verified, race, total_pop, countryFlag FROM users WHERE id>2 AND hidden=0 AND access=1 ORDER BY total_pop DESC LIMIT 3");
         while ($row = $result->fetch_assoc()) {
             if ($row['email_verified'] == 1) {
-                ClubApi::addMedal($row['name'],
+                ClubApi::addMedal(
+                    $row['name'],
                     $row['race'],
                     $row['email'],
                     [$row['countryFlag'], $row['total_pop']],
                     ++$x,
-                    $hidden);
+                    $hidden
+                );
             }
         }
         //big off hammer 16
@@ -815,23 +888,27 @@ class Automation
         $result = $db->query("SELECT id, name, email, email_verified, race, max_off_point, countryFlag FROM users WHERE id>2 AND hidden=0 AND access=1 AND max_off_point > 0 ORDER BY max_off_point DESC LIMIT 1");
         while ($row = $result->fetch_assoc()) {
             if ($row['email_verified'] == 1) {
-                ClubApi::addMedal($row['name'],
+                ClubApi::addMedal(
+                    $row['name'],
                     $row['race'],
                     $row['email'],
                     [$row['countryFlag'], $row['max_off_point']],
                     16,
-                    $hidden);
+                    $hidden
+                );
             }
         }
         $result = $db->query("SELECT id, name, email, email_verified, race, max_def_point, countryFlag FROM users WHERE id>2 AND hidden=0 AND access=1 AND max_def_point > 0 ORDER BY max_def_point DESC LIMIT 1");
         while ($row = $result->fetch_assoc()) {
             if ($row['email_verified'] == 1) {
-                ClubApi::addMedal($row['name'],
+                ClubApi::addMedal(
+                    $row['name'],
                     $row['race'],
                     $row['email'],
                     [$row['countryFlag'], $row['max_def_point']],
                     17,
-                    $hidden);
+                    $hidden
+                );
             }
         }
         if ($resultCode == 1) {
@@ -849,12 +926,14 @@ class Automation
                         $result = $db->query("SELECT id, name, email, email_verified, race, total_pop, countryFlag FROM users WHERE aid={$uData['aid']} AND id!={$uData['id']}");
                         while ($row = $result->fetch_assoc()) {
                             if ($row['email_verified'] == 1) {
-                                ClubApi::addMedal($row['name'],
+                                ClubApi::addMedal(
+                                    $row['name'],
                                     $row['race'],
                                     $row['email'],
                                     [$row['countryFlag'], $alliance['name'], $alliance['tag']],
                                     18,
-                                    $hidden);
+                                    $hidden
+                                );
                             }
                         }
                     }
@@ -900,8 +979,10 @@ class Automation
             $interval = getCustom("activationReminderInterval");
             $startTime = $config->game->start_time;
             if ($interval > 0) {
-                $result = $globalDB->query("SELECT * FROM activation WHERE used=0 AND time>0 AND reminded=0 AND " . time() . "-IF(time <= $startTime, $startTime, time) >= $interval AND worldId=" . Config::getProperty("settings",
-                        "worldUniqueId") . "  LIMIT 20");
+                $result = $globalDB->query("SELECT * FROM activation WHERE used=0 AND time>0 AND reminded=0 AND " . time() . "-IF(time <= $startTime, $startTime, time) >= $interval AND worldId=" . Config::getProperty(
+                    "settings",
+                    "worldUniqueId"
+                ) . "  LIMIT 20");
                 $view = new PHPBatchView("mail/activationReminder");
                 while ($row = $result->fetch_assoc()) {
                     $globalDB->query("UPDATE activation SET reminded=1 WHERE id={$row['id']}");
@@ -927,7 +1008,8 @@ class Automation
     public function postService()
     {
         $config = Config::getInstance();
-        if ($config->dynamic->postServiceDone == 1 || $config->dynamic->serverFinishTime <= 0) return;
+        if ($config->dynamic->postServiceDone == 1 || $config->dynamic->serverFinishTime <= 0)
+            return;
         $pause = 3 * 86400;
         if ($config->timers->auto_reinstall > 0) {
             $pause = $config->timers->auto_reinstall;
@@ -1047,7 +1129,8 @@ class Automation
 
     public function backup()
     {
-        if (getGameElapsedSeconds() <= 1800) return;
+        if (getGameElapsedSeconds() <= 1800)
+            return;
         $db = DB::getInstance();
         $lastBackup = $db->fetchScalar("SELECT lastBackup FROM config");
         if ((time() - $lastBackup) > 6 * 3600) {

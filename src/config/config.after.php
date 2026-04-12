@@ -40,6 +40,8 @@ $config->game->useMilSeconds = $config->game->speed > 20;
 $config->game->useNanoseconds = $config->game->speed > 20000;
 $config->heroConfig->heroItemsSettings->heroIncreaseSpeed = $config->game->movement_speed_increase;
 $config->heroConfig->waterBucketsPerDay = $config->game->movement_speed_increase;
+$config->heroConfig->heroItemsSettings->heroIncreaseSpeedRate = $config->game->movement_speed_increase;
+$config->heroConfig->heroItemsSettings->heroRegenerationRate = $config->game->speed;
 if ($config->timers->AutoFinishTime == 0) {
     $config->game->round_length = ($config->timers->wwPlansReleaseTime - $config->game->start_time) / 86400;
 } else {
@@ -64,7 +66,7 @@ function multiply_for_other_servers()
     }*/
 }
 
-if (property_exists($config->dynamic, 'delayTime')) {
+if (!empty($config->dynamic->delayTime)) {
     $config->timers->ArtifactsReleaseTime += $config->dynamic->delayTime;
     $config->timers->wwPlansReleaseTime += $config->dynamic->delayTime;
     if ($config->timers->WWConstructStartTime > 0) {

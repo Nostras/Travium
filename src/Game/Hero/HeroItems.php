@@ -207,7 +207,9 @@ class HeroItems
                 break;
             case 3:
                 if ($type <= 63) {
-                    $result['return_speed'] = (30 + (($type - 61) * 10)) * $heroItemsSettings['heroIncreaseSpeedRate'];
+                    // This does NOT scale with server speed lol wtf?
+                    // Enabling this causes "double dipping"
+                    $result['return_speed'] = (30 + (($type - 61) * 10)); // * $heroItemsSettings['heroIncreaseSpeedRate'];
                     $result['attributes'] = sprintf($result['attributes'], $result['return_speed']);
                 } else if ($type <= 66) {
                     $result['speed_own'] = (30 + (($type - 64) * 10)) * $heroItemsSettings['heroIncreaseSpeedOwnRate'];

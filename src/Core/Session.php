@@ -1170,6 +1170,7 @@ class Session
 
     public function needValidation()
     {
+        return false;
         return SessionVar::getVariable("reCaptchaValidation", true, 1200) == FALSE;
     }
 

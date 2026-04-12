@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Travium Update Script: Backup (Keep 1) -> Pull -> Install
+set -Eeuo pipefail
+
+# Configuration
+SITE_USER="travium"
+HTDOCS="/home/${SITE_USER}/htdocs"
+BACKUP_DIR="/home/${SITE_USER}/backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+log(){ printf "\033[1;34m[*]\033[0m %s\n" "$*"; }
+ok(){  printf "\033[1;32m[OK]\033[0m %s\n" "$*"; }
+err(){ printf "\033[1;31m[ERR]\033[0m %s\n" "$*" >&2; }
+
+[[ $EUID -eq 0 ]] || { err "Please run as root"; exit 1; }
+
+#####################################
+# 1. Create Backup & Cleanup Old Ones
+#####################################
+log "Preparing backup..."
+mkdir -p "$BACKUP_DIR"
+chown "${SITE_USER}:${SITE_USER}" "$BACKUP_DIR"
+
+BACKUP_FILE="${BACKUP_DIR}/htdocs_backup_${TIMESTAMP}.tar.gz"
+
+log "Archiving htdocs..."
+tar -czf "$BACKUP_FILE" -C "/home/${SITE_USER}" htdocs
+chown "${SITE_USER}:${SITE_USER}" "$BACKUP_FILE"
+
+# Clean up: Find all htdocs_backup files, sort by time, skip the first (newest), delete others
+log "Cleaning up old backups (Keeping only the latest)..."
+find "$BACKUP_DIR" -name "htdocs_backup_*.tar.gz" -type f | sort -r | tail -n +2 | xargs -r rm -f
+
+ok "Backup created: $(basename "$BACKUP_FILE")"
+
+#####################################
+# 2. Update Source (Git Reset)
+#####################################
+log "Updating source code from GitHub (feature/wip)..."
+su - "$SITE_USER" -s /bin/bash -c "
+    cd \"$HTDOCS\"
+    git fetch origin
+    git reset --hard origin/feature/wip
+"
+
+#####################################
+# 3. Update Dependencies
+#####################################
+if [[ -f "${HTDOCS}/composer.json" ]]; then
+    log "Updating PHP dependencies..."
+    su - "$SITE_USER" -s /bin/bash -c "
+        cd \"$HTDOCS\"
+        export COMPOSER_MEMORY_LIMIT=-1
+        /usr/bin/php7.3 /usr/local/bin/composer install \
+          --no-interaction --prefer-dist --optimize-autoloader
+    "
+    ok "Dependencies updated."
+fi
+
+# Ensure permissions are correct after git/composer ops
+chown -R "${SITE_USER}:${SITE_USER}" "$HTDOCS"
+
+#####################################
+# 4. Restart Automation Engine(s)
+#####################################
+log "Restarting Travium engine(s)..."
+for SERVICE in $(systemctl list-units --type=service --all | grep -oP 'travium@\S+\.service'); do
+    log "Restarting $SERVICE..."
+    systemctl restart "$SERVICE"
+    ok "$SERVICE restarted."
+done
+
+ok "Update complete! Only the latest backup is kept in $BACKUP_DIR"

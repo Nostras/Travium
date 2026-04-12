@@ -23,7 +23,7 @@ if($minBonusLevel >= 5){
 <input type="hidden" id="donatedToday" value="<?= $session->getAllianceContribution(); ?>"/>
 <div id="dailyContributionTitle">
     <?php
-    $nextReset = $config->dynamic->lastAllianceContributeReset + $config->allianceBonus->donate_reset_interval;
+    $nextReset = $config->dynamic->lastAllianceContributeReset + ($config->allianceBonus->donate_reset_interval / $config->game->speed);
     $diff = $nextReset - time();
     echo sprintf(T("AllianceBonus", "My daily contribution limit (reset in %s)"), '<strong>' . appendTimer($diff) . '</strong>');
     ?>

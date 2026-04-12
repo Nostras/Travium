@@ -1,3 +1,4 @@
+<!--
 <div id="sidebarBoxDailyquests" class="sidebarBox   ">
 	<div class="sidebarBoxBaseBox">
 		<div class="baseBox baseBoxTop">
@@ -53,3 +54,4 @@
 		</div>
 	</div>
 </div>
+-->

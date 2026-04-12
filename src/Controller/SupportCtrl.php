@@ -85,7 +85,7 @@ class SupportCtrl extends OutOfGameCtrl
                     $countErrors++;
                 }
 
-                if(!recaptcha_check_answer()){
+                if(false && !recaptcha_check_answer()){
                     $this->data['message']['error'] = T("Support", "errors.Wrong captcha");
                     $countErrors++;
                 }

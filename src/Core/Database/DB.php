@@ -125,7 +125,9 @@ class DB
     public function real_connect($host = NULL, $username = NULL, $passwd = NULL, $dbname = NULL, $port = NULL, $socket = NULL)
     {
         $this->mysqli = new \mysqli($host, $username, $passwd, $dbname, $port, $socket);
-        $status = $this->mysqli->ping();
+        $status = PHP_VERSION_ID >= 80200
+            ? !$this->mysqli->connect_errno
+            : $this->mysqli->ping();
         if ($status) {
             $this->set_charset("utf8");
             $this->lastPing = time();
@@ -140,6 +142,9 @@ class DB
 
     public function ping()
     {
+        if (PHP_VERSION_ID >= 80200) {
+            return true;
+        }
         return $this->mysqli->ping();
     }
 
@@ -158,6 +163,7 @@ class DB
                 $this->forceNewDatabase();
                 $ping = $this->ping();
                 logError("Could not ping MySQL");
+                if (PHP_VERSION_ID >= 80200) break; // ping always returns true on 8.2+, avoid infinite loop
                 sleep(1);
             }
             if ($ping) $this->lastPing = time();
@@ -243,7 +249,9 @@ class DB
         $now = time();
         foreach ($files as $file) {
             if (is_file($file)) {
-                $fileTime = floor((int)explode("-", basename($file))[1] / 1000);
+                $parts = explode("-", basename($file));
+                if (!isset($parts[1])) continue;
+                $fileTime = floor((int)$parts[1] / 1000);
                 if (($now - $fileTime) >= ($gameFinished ? 2 : 12) * 3600) { // 2 days
                     unlink($file);
                 }

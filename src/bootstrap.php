@@ -52,7 +52,7 @@ if (!property_exists($config, 'db')) {
 }
 $db = DB::getInstance();
 {
-    if (true || php_sapi_name() == 'cli') {
+    if (php_sapi_name() == 'cli') {
         $result = $db->query("SELECT * FROM config");
         if (!$result->num_rows) {
             logError("No config row found.");
@@ -68,7 +68,9 @@ $db = DB::getInstance();
                 logError("No config row found.");
                 exit("We are having issues, please try again in a moment. E1");
             }
-            $cache->set('WorldConfig', (object)$result->fetch_assoc(), 300);
+            $row = (object)$result->fetch_assoc();
+            $config->dynamic = $row;
+            $cache->set('WorldConfig', $row, 300);
         }
     }
     if (property_exists($config, 'startTime')) {

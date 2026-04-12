@@ -53,13 +53,14 @@ class AdventureModel
         $db = DB::getInstance();
         $interval = 1 * 3600;
         $now = time();
-        if(getGameSpeed() <= 2){
-            $expire = 144 * 3600;
-        } else if(getGameSpeed() <= 10) {
-            $expire = 72 * 3600;
-        } else {
-            $expire = max(432000 / getGameSpeed(), 18000);
-        }
+        // if(getGameSpeed() <= 2){
+        //     $expire = 144 * 3600;
+        // } else if(getGameSpeed() <= 10) {
+        //     $expire = 72 * 3600;
+        // } else {
+        //     $expire = max(432000 / getGameSpeed(), 18000);
+        // }
+        $expire = $this->getAdventureExpireTime();
         $expire_interval = max(86400 / getGameSpeed(), 1800);
         $find = $db->query("SELECT id, total_adventures, last_adventure_time, signupTime FROM users WHERE id>1 AND access=1 AND last_adventure_time <= " . (time() - $interval) . " ORDER BY last_adventure_time ASC LIMIT 100");
         while ($row = $find->fetch_assoc()) {
@@ -170,7 +171,17 @@ class AdventureModel
 
     public function getAdventureExpireTime()
     {
-        return max(7 * 86400 / getGameSpeed(), 18000);
+        // return max(7 * 86400 / getGameSpeed(), 18000);
+        // Always at least 8 hours, then add some time depending on the speed of the server
+        // 1x =  8 + 168 hours  = 7.30 days
+        // 2x =  8 + 84 hours   = 3.84 days
+        // 3x =  8 + 56 hours   = 2.67 days
+        // 5x =  8 + 56 hours   = 1.73 days
+        // 10x = 8 + 16.8 hours = 1.03 days
+        // 20x = 8 + 8.4 hours  = 16.4 hours
+        // 50x = 8 + 11.36 hours= 11.4 hours
+        // 100x= 8 + 1.68 hours = 9.68 hours
+        return (60 * 60 * 8)  + (7 * 86400 / getGameSpeed());
     }
 
     public function addNewUserAdventures($uid)

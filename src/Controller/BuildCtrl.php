@@ -303,6 +303,105 @@ class BuildCtrl extends GameCtrl
         return PHPBatchView::render("build/buildingWrapper", $data);
     }
 
+    /**
+     * Build the "queue all" button HTML that attempts to queue this building
+     * into every available slot (normal → plus → master builder) in one click.
+     *
+     * Returns null when there is nothing more to queue (building at max level,
+     * or every slot—including all master-builder slots—is already occupied by
+     * this building).
+     */
+    private function getQueueAllButton($item_id, $fieldId)
+    {
+        $village = Village::getInstance();
+        $config  = Config::getInstance();
+        
+        // If the building can't be upgraded at all, don't show the button.
+        $currentLevel = $village->getField($fieldId)['level'];
+        $maxLevel     = Formulas::buildingMaxLvl($item_id, $village->isCapital());
+        // 1e9 is returned for capital resource fields with allowResourcesToGoToMaximumPossible.
+        if ($currentLevel >= $maxLevel) {
+            return null;
+        }
+        
+        // Count how many upgrades are already queued for this field across
+        // both normal and master queues.
+        $alreadyQueued = 0;
+        // foreach ($village->onLoadBuildings['normal'] as $task) {
+        //     if ($task['building_field'] == $fieldId) {
+        //         $alreadyQueued++;
+        //     }
+        // }
+        foreach ($village->onLoadBuildings['master'] as $task) {
+            if ($task['building_field'] == $fieldId) {
+                $alreadyQueued++;
+            }
+        }
+    
+         // Determine total slots available: normal (1 or 2 with plus) + master builder slots.
+         $hasPlus       = $this->session->hasPlus();
+         $normalSlots   = $hasPlus ? 2 : 1;
+         $masterSlots   = $village->isWW()
+             ? $config->masterBuilder->maxTasksInWonder
+             : $config->masterBuilder->maxTasksInNoneWonder;
+         $totalSlots    = $normalSlots + $masterSlots;
+ 
+         // Clamp to what the building can actually absorb before hitting max level.
+        $remainingLevels = $maxLevel - ($currentLevel + $village->getField($fieldId)['upgrade_state'] + $alreadyQueued);
+        $totalSlots      = min($totalSlots, $remainingLevels + $alreadyQueued);
+        
+        // Nothing more to queue.
+        if ($alreadyQueued >= $totalSlots) {
+            return null;
+        }
+    
+        $pageNamePostfix = ($item_id <= 4 ? '1' : '2');
+        $checker         = $this->session->getChecker();
+    
+        // "Queue all" button (existing behaviour)
+        $linkAll = 'dorf' . $pageNamePostfix . '.php?a=' . $fieldId . '&q=1&c=' . $checker;
+        $btnAll  = getButton(
+            [
+                'type'    => 'button',
+                'class'   => 'green build queueAll',
+                'onclick' => "window.location.href = '$linkAll'; return false;",
+            ],
+            ['data' => ['class' => 'green build queueAll']],
+            T('Buildings', 'queueAllUpgrades')
+        );
+
+        // 1e9 is returned for capital resource fields with allowResourcesToGoToMaximumPossible.
+        // Queue-until has no meaning without a sensible max, so skip the picker for these.
+        if ($maxLevel >= 1e9) {
+            $maxLevel = $currentLevel + $totalSlots;
+        }
+    
+        // "Queue until" level picker — only levels reachable beyond current queued state
+        $alreadyAt = $currentLevel + $village->getField($fieldId)['upgrade_state'] + $alreadyQueued;
+        $minTarget = $alreadyAt + 1; // first level that would actually add something
+    
+        if ($minTarget > $maxLevel) {
+            return $btnAll;
+        }
+    
+        $baseLink = 'dorf' . $pageNamePostfix . '.php?a=' . $fieldId . '&q=2&c=' . $checker . '&ql=';
+        $options  = '';
+        for ($lvl = $minTarget; $lvl <= $maxLevel; $lvl++) {
+            $options .= '<option value="' . $lvl . '">' . T('Buildings', 'level') . ' ' . $lvl . '</option>';
+        }
+    
+        $btnUntil = '<span class="queueUntil">'
+            . '<select class="queueUntilSelect" id="queueUntilSelect_' . $fieldId . '">' . $options . '</select>'
+            . ' <button type="button" class="green build" onclick="'
+            . 'var v=document.getElementById(\'queueUntilSelect_' . $fieldId . '\').value;'
+            . 'window.location.href=\'' . $baseLink . '\'+v; return false;">'
+            . T('Buildings', 'queueUntilLevel')
+            . '</button>'
+            . '</span>';
+    
+        return $btnAll . ' ' . $btnUntil;
+    }
+
     private function getActionText($item_id = 0)
     {
         $result = [
@@ -311,6 +410,7 @@ class BuildCtrl extends GameCtrl
             'plus' => null,
             'noResources' => false,
             'extraModuleButton' => null,
+            'queueAll' => null,
         ];
         $village = Village::getInstance();
         $fieldId = $this->selectedBuildingIndex;
@@ -395,7 +495,7 @@ class BuildCtrl extends GameCtrl
         $link = ("dorf" . $pageNamePostfix . ".php?") . "a=" . ($lvl > 1 || $item_id <= 4 ? $fieldId : $item_id) . (($lvl > 1 || $item_id <= 4 ? "" : '&id=' . $fieldId) . '&c=' . $session->getChecker());
         $cost = Formulas::buildingUpgradeCosts($item_id, $lvl);
         $goldHelper = new GoldHelper();
-        if ((!$village->isWW() || $item_id == 40) && ($workerResult['isBusy'] || !$village->isResourcesAvailable($cost))) {
+        if ($workerResult['isBusy'] || !$village->isResourcesAvailable($cost)) {
             //masterBuilder
             $result['master'] = $goldHelper->getMasterBuilderButton($fieldId, $item_id, $village->getField($fieldId)['level'] + $village->getField($fieldId)['upgrade_state'], $link);
         }
@@ -408,6 +508,9 @@ class BuildCtrl extends GameCtrl
         if (!$village->isResourcesAvailable($cost)) {
             $result['noResources'] = true;
             $result['main'] = $village->calcWhenResourcesAreAvailable($cost, TRUE);
+            if (!$new) {
+                $result['queueAll'] = $this->getQueueAllButton($item_id, $fieldId);
+            }
             goto outReturn;
         }
         $btn = getButton(["type" => "button", "class" => "green " . ($new ? 'new' : 'build'), "onclick" => "window.location.href = '$link'; return false;",], ['data' => ["class" => "green " . ($new ? 'new' : 'build')]], $lvl == 1 && $item_id > 4 ? T("Buildings", "constructBuilding") : sprintf(T("Buildings", "upgradeBuilding"), $lvl));
@@ -415,9 +518,15 @@ class BuildCtrl extends GameCtrl
         if ($workerResult['isBusy']) {
             //$result['main'] = '<span class="errorMessage">' . T("Buildings", "workersBusy") . '</span>';
             $result['main'] = null;
+            if (!$new) {
+                $result['queueAll'] = $this->getQueueAllButton($item_id, $fieldId);
+            }
             goto outReturn;
         } else {
             $result['main'] = $btn;
+            if (!$new) {
+                $result['queueAll'] = $this->getQueueAllButton($item_id, $fieldId);
+            }
             goto outReturn;
         }
         outReturn:
@@ -682,7 +791,7 @@ class BuildCtrl extends GameCtrl
                 break;
             case 28:
                 $this->getValuesTable($contract, [], function ($params, $lvl) {
-                    return Formulas::TradeOfficeValue($lvl);
+                    return Formulas::TradeOfficeValue( $this->session->getRace(), $lvl);
                 });
                 break;
             case 34:
@@ -749,4 +858,4 @@ class BuildCtrl extends GameCtrl
             $contract['valueTable'] .= '<tr class="nextPossible"><th>' . T("Buildings", $item_id . ".next_prod") . ' ' . $nextLevel . ':</th><td><span class="number">' . number_format_x($value) . '</span> ' . T("Buildings", $item_id . ".unit") . '</td></tr>';
         }
     }
-} 
+}

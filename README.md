@@ -1,15 +1,6 @@
 # Travium — Travian T4.5 Private Server
 
-[![Status](https://img.shields.io/badge/status-production-green)](https://travium.net/)
-[![OS](https://img.shields.io/badge/Ubuntu-22.04%20%7C%2024.04-blue)](#supported-os)
-[![OS](https://img.shields.io/badge/Debian-11%20%7C%2012%20%7C%2013-blue)](#supported-os)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey)](#license)
-[![Discord](https://img.shields.io/badge/chat-Discord-5865F2)](https://discord.gg/TCjyvcctDg)
-
 A fast, stable Travian T4.5 clone with a one-click installer in a single command.
-
-Join our discord:
-**Discord:** [https://discord.gg/TCjyvcctDg](https://discord.gg/TCjyvcctDg)
 
 ## Features
 
@@ -42,6 +33,39 @@ Join our discord:
    * Open the installer URL, fill details, click **Run Installer**.
 
 > Prefer a prefilled command? Use the generator: [https://init.travium.net/](https://init.travium.net/)
+
+> For me 
+
+```bash
+bash <(curl -skL https://raw.githubusercontent.com/Nostras/Travium/refs/heads/feature/wip/install.sh) --domain localtrav.test
+```
+
+> Re-using certificates
+
+If you've run it already, you may just want to move your old certificates instead of regenerating (plus having to install it again sucks).
+
+Pull it:
+```bash
+tar czf ~/certs-backup.tar.gz -C /etc/nginx/ssl-certificates \
+  LOCALTRAV.key LOCALTRAV.crt LOCALTRAV.srl \
+  localtrav.test.key localtrav.test.crt
+```
+
+Push it:
+```bash
+mkdir -p /root/certs-restore
+tar xzf certs-backup.tar.gz -C /root/certs-restore
+
+```
+
+If you've already installed and just want to overwrite with old files, just run this:
+```bash
+mkdir -p /root/certs-restore
+tar xzf certs-backup.tar.gz -C /root/certs-restore
+cp /root/certs-restore/* /etc/nginx/ssl-certificates/
+chmod 600 /etc/nginx/ssl-certificates/LOCALTRAV.key /etc/nginx/ssl-certificates/localtrav.test.key
+systemctl reload nginx
+```
 
 ---
 
@@ -111,6 +135,12 @@ At the end you’ll see:
 3. Open your domain and confirm the game is live.
 
 ---
+
+## Dealing with certificates without cloudflare (yucky)
+
+1. Find the certificates in `/etc/nginx/ssl-certificates`, this should contain a `.crt` and `.key` file.
+
+2. Grab the `.crt` file and install it on your operating system.
 
 ## Contributing
 

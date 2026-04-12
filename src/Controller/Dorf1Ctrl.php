@@ -181,6 +181,58 @@ class Dorf1Ctrl extends GameCtrl
         if (!isset($_GET['id'])) {
             if ((int)$_GET['a'] === 0) {
                 $village->removeBuilding((int)$_GET['d']);
+            } else if (isset($_GET['q']) && (int)$_GET['q'] === 1) {
+                // Queue-all: fill normal slot(s), then all available master builder slots
+                $field = (int)$_GET['a'];
+                $village->upgradeBuilding($field, false); // normal slot
+                $village->upgradeBuilding($field, false); // plus slot (fails silently if not available)
+                $config = Config::getInstance();
+                $maxMaster = $village->isWW()
+                    ? $config->masterBuilder->maxTasksInWonder
+                    : $config->masterBuilder->maxTasksInNoneWonder;
+                for ($i = 0; $i < $maxMaster; $i++) {
+                    if ($village->upgradeBuilding($field, true) === false) {
+                        break;
+                    }
+                }
+            } else if (isset($_GET['q']) && (int)$_GET['q'] === 2) {
+                // Queue-until a specific target level
+                $field       = (int)$_GET['a'];
+                $targetLevel = (int)($_GET['ql'] ?? 0);
+                if ($targetLevel > 0) {
+                    $config    = Config::getInstance();
+                    $maxMaster = $village->isWW()
+                        ? $config->masterBuilder->maxTasksInWonder
+                        : $config->masterBuilder->maxTasksInNoneWonder;
+            
+                    // Count how many levels are already committed (normal + master queues)
+                    $getCurrentQueued = function() use ($village, $field) {
+                        $masterCount = 0;
+                        foreach ($village->onLoadBuildings['master'] as $t) {
+                            if ($t['building_field'] == $field) $masterCount++;
+                        }
+                        return $village->getField($field)['level']
+                             + $village->getField($field)['upgrade_state']
+                             + $masterCount;
+                    };
+            
+                    // Fill normal slots first
+                    if ($getCurrentQueued() < $targetLevel) {
+                        $village->upgradeBuilding($field, false); // slot 1
+                    }
+                    if ($getCurrentQueued() < $targetLevel) {
+                        $village->upgradeBuilding($field, false); // plus slot
+                    }
+                    // Then fill master builder slots up to target
+                    for ($i = 0; $i < $maxMaster; $i++) {
+                        if ($getCurrentQueued() >= $targetLevel) {
+                            break;
+                        }
+                        if ($village->upgradeBuilding($field, true) === false) {
+                            break;
+                        }
+                    }
+                }
             } else {
                 $village->upgradeBuilding($_GET['a'], isset($_GET['b']) && (int)$_GET['b'] === 1);
             }

@@ -1425,7 +1425,7 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
                             array(
                                 'off' => 40,
                                 'def_i' => 35,
-                                'def_c' => 50,
+                                'def_c' => 70,
                                 'speed' => 6,
                                 'cost' =>
                                     array(
@@ -3320,7 +3320,12 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
 
     public static function merchantSpeed($race)
     {
-        $speeds = [1 => 16, 12, 24, 5 => 16, 6 => 16, 7 => 20];
+        // 1 = Romans
+        // 2 = Teutons
+        // 3 = Gauls
+        // 6 = Egyptians
+        // 7 = Huns
+        $speeds = [1 => 16, 2 => 12, 3 => 24, 6 => 16, 7 => 20];
         $speed = $speeds[$race];
         return $speed * getGameSpeed();
     }
@@ -3328,7 +3333,7 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
     public static function merchantCAP($race, $bid18, $alliance_bonus = 1)
     {
         $capacity = [1 => 500, 2 => 1000, 3 => 750, 5 => 500, 6 => 750, 7 => 500];
-        return round($capacity[$race] * getGameSpeed() * ((100 + ($bid18 * 10)) / 100) * $alliance_bonus);
+        return round($capacity[$race] * getGameSpeed() * ((100 + ($bid18 * ($race == 1 ? 20 : 10))) / 100) * $alliance_bonus);
     }
 
     public static function uCarry($u)
@@ -3574,7 +3579,7 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
 
     public static function getMainBuildingValue($lvl)
     {
-        return round(100 / (pow(0.964, 1 - $lvl)));
+        return round(100 / (pow(0.9433, 1 - $lvl)));
     }
 
     public static function celebrationCost($big = FALSE)
@@ -3730,9 +3735,9 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
         return round((100 * (pow($k, $lvl) - 1)));
     }
 
-    public static function TradeOfficeValue($lvl)
+    public static function TradeOfficeValue($race, $lvl)
     {
-        return (10 + $lvl) * 10;
+        return 100 + $lvl * ($race == 1 ? 20 : 10);
     }
 
     public static function TournamentSqValue($lvl)
@@ -3759,7 +3764,7 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
             $t[2] = 1875 * $t[1];
         }
 
-        $time = (($t[0] * pow($t[1], $lvl - 1) - $t[2]) * ($mb != 0 ? pow(0.964,
+        $time = (($t[0] * pow($t[1], $lvl - 1) - $t[2]) * ($mb != 0 ? pow(0.9433,
                 $mb - 1) : 5) / $rate / ($n ? 2 : 1));
 
         if ($rate > 500) {
@@ -3795,12 +3800,12 @@ Crannies have 20% less capacity against teuton raids with hero + 10-20% from any
                 }
             }
         }
-        if ($gid <= 4 && $lvl > 20 && getGameSpeed() > 10) {
-            $rate = 10;
-            foreach ($cost as &$r) {
-                $r *= $rate;
-            }
-        }
+        // if ($gid <= 4 && $lvl > 20 && getGameSpeed() > 10) {
+        //     $rate = 10;
+        //     foreach ($cost as &$r) {
+        //         $r *= $rate;
+        //     }
+        // }
         return $cost;
     }
 

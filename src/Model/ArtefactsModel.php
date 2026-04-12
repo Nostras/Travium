@@ -150,17 +150,25 @@ class ArtefactsModel
     public function canClaimArtifact($type, $size, $atkUid, $defUid, $atkKid, $attackerBuildings, $defBuildings)
     {
         $db = DB::getInstance();
-        if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE kid=$atkKid") >= 1) {
-            return -1;
-        }
-        if (!($atkUid == $defUid) && $atkUid <> 1) {
-            if ($size > 1 && $db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE size=$size AND uid=$atkUid") >= 1) {
-                return -2;
+    
+        if (!getCustom("noArtifactLimits")) {
+            $maxPerVillage = getCustom("maxArtifactsPerVillage") ?: 1;
+            $maxPerSize    = getCustom("maxArtifactsPerSize") ?: 1;
+            $maxTotal      = getCustom("maxArtifactsTotal") ?: 3;
+    
+            if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE kid=$atkKid") >= $maxPerVillage) {
+                return -1;
             }
-            if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE uid=$atkUid") >= 3) {
-                return -2;
+            if (!($atkUid == $defUid) && $atkUid <> 1) {
+                if ($size > 1 && $db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE size=$size AND uid=$atkUid") >= $maxPerSize) {
+                    return -2;
+                }
+                if ($db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE uid=$atkUid") >= $maxTotal) {
+                    return -2;
+                }
             }
         }
+    
         for ($i = 19; $i <= 38; $i++) {
             if ($defBuildings[$i]['item_id'] == 27 && $defBuildings[$i]['level'] > 0) {
                 return -3;
@@ -359,17 +367,21 @@ class ArtefactsModel
     public function fixArtifactOrderForPlayer($uid)
     {
         $db = DB::getInstance();
-        //disable all artifacts of two accounts
+    
+        if (getCustom("noArtifactLimits")) {
+            // Activate all — effect-level stacking is already prevented in getActiveArtifactInVillage
+            $db->query("UPDATE artefacts SET status=1 WHERE uid=$uid");
+            return;
+        }
+    
+        $maxTotal   = getCustom("maxArtifactsTotal") ?: 3;
+        $maxPerSize = getCustom("maxArtifactsPerSize") ?: 1;
+    
         $db->query("UPDATE artefacts SET status=2 WHERE uid=$uid");
-
-        //activate the last small artifact
         $db->query("UPDATE artefacts SET status=1 WHERE size=1 AND uid=$uid ORDER BY conquered DESC LIMIT 1");
-
-        //activate first big or unique artifact
-        $db->query("UPDATE artefacts SET status=1 WHERE uid=$uid AND size>1 ORDER BY conquered ASC LIMIT 1");
-
-        //activating other small artifacts
-        $left = 3 - (int)$db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE status=1 AND uid=$uid");
+        $db->query("UPDATE artefacts SET status=1 WHERE uid=$uid AND size=2 ORDER BY conquered ASC LIMIT $maxPerSize");
+        $db->query("UPDATE artefacts SET status=1 WHERE uid=$uid AND size=3 ORDER BY conquered ASC LIMIT $maxPerSize");
+        $left = $maxTotal - (int)$db->fetchScalar("SELECT COUNT(id) FROM artefacts WHERE status=1 AND uid=$uid");
         if ($left > 0) {
             $db->query("UPDATE artefacts SET status=1 WHERE uid=$uid AND status=2 AND size=1 ORDER BY conquered ASC LIMIT $left");
         }

@@ -16,12 +16,12 @@ $config->game->allowDemolishNowInWW = true;
 $config->game->maxTrapperCount = 2;
 $config->display->dontShowLinkListBeforeTutorial = false;
 $config->custom->allowOneFarmListPerAccount = $config->custom->allowOneFarmListPerVillage = true;
-$config->game->firstVillageCreationFieldsLevel = 5;
-$config->game->otherVillageCreationFieldsLevel = 3;
+$config->game->firstVillageCreationFieldsLevel = 0;
+$config->game->otherVillageCreationFieldsLevel = 0;
 $config->custom->allowEvasionForAllVillages = true;
 $config->custom->allowOnlyOneWWVillagePerAccount = true;
 $config->game->changeCapitalOnZeroPop = false;
-$config->custom->removeReports = 1 * 86400;
+$config->custom->removeReports = 7 * 86400;
 $config->custom->activationReminderInterval = 3 * 3600;
 $config->custom->activationProgressReminderInterval = 3 * 3600;
 $config->custom->reduceCataSpeedInAttacks = true;
@@ -29,7 +29,11 @@ $config->custom->makeAuctionsCheaperInSell = true;
 $config->custom->needAllianceWWPlan = false;
 $config->fakeUsersCount = mt_rand(40, 100);
 $config->game->deletionTime = 3600 * 1;
-
+// Max gold club limit 3 -> 20
+$config->masterBuilder->maxTasksInNoneWonder = 20;
+// Also permit in wonder (it's master builder, whatever man)
+$config->masterBuilder->maxTasksInWonder = 20;
+$config->custom->noArtifactLimits = true;
 {
     if ($config->game->speed >= 5000) {
         $config->game->dailyQuestInterval = 6 * 3600;
@@ -45,7 +49,8 @@ $config->game->deletionTime = 3600 * 1;
     $config->game->trap_multiplier = max(ceil($config->game->speed / 4), 1);
     $config->game->cranny_multiplier = max(ceil($config->game->speed / 8), 1);
     if ($config->game->speed <= 250) {
-        $config->game->movement_speed_increase = max(round($config->game->speed / 5), 1);
+        $config->game->movement_speed_increase = ($config->game->speed > 0) ? (int) floor(log($config->game->speed, 2)) : 1;
+        // $config->game->movement_speed_increase = max(round($config->game->speed / 5), 1);
     } else {
         $config->game->movement_speed_increase = min(max(round5($config->game->speed * 8 / 100), 1), 3000);
     }
@@ -62,13 +67,13 @@ $config->game->deletionTime = 3600 * 1;
     }
 }
 {
-    $config->extraSettings->addFarms->enabled = true;
-    $config->extraSettings->generalOptions->increaseStorage->enabled = true;
-    $config->extraSettings->generalOptions->finishTraining->enabled = true;
-    $config->extraSettings->generalOptions->fasterTraining->enabled = true;
-    $config->extraSettings->generalOptions->smithyUpgradeAllToMax->enabled = true;
-    $config->extraSettings->generalOptions->academyResearchAll->enabled = true;
-    $config->extraSettings->generalOptions->buyAdventure->enabled = true;
+    $config->extraSettings->addFarms->enabled = false;
+    $config->extraSettings->generalOptions->increaseStorage->enabled = false;
+    $config->extraSettings->generalOptions->finishTraining->enabled = false;
+    $config->extraSettings->generalOptions->fasterTraining->enabled = false;
+    $config->extraSettings->generalOptions->smithyUpgradeAllToMax->enabled = false;
+    $config->extraSettings->generalOptions->academyResearchAll->enabled = false;
+    $config->extraSettings->generalOptions->buyAdventure->enabled = false;
     {
         $moreProtectionStatus = !$config->dynamic->WWPlansReleased;
         foreach ($config->extraSettings->moreProtection->packages as &$pack) {
@@ -119,23 +124,23 @@ $config->bonus->bonusGoldTopAllianceCount = 5;
 
 {
 //these are for 5000x servers and will be multiplied for other speeds
-    $config->extraSettings->buyBuildings['enabled'] = true;    
+    $config->extraSettings->buyBuildings['enabled'] = false;    
     
-    $config->extraSettings->smithyMaxLevel->enabled = true;
-    $config->extraSettings->upgradeToMaxLevel->enabled = true;
-    $config->extraSettings->upgradeStorageToMaxLevel->enabled = true;
+    $config->extraSettings->smithyMaxLevel->enabled = false;
+    $config->extraSettings->upgradeToMaxLevel->enabled = false;
+    $config->extraSettings->upgradeStorageToMaxLevel->enabled = false;
 
 
-	$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo5']->enabled = true;
+	$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo5']->enabled = false;
     if ($config->game->speed > 300) {
-		$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo20']->enabled = true;
+		$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo20']->enabled = false;
     }
     if ($config->game->speed > 500) {
-		$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo30']->enabled = true;
+		$config->extraSettings->buyBuildings['packages']['upgradeAllResourcesTo30']->enabled = false;
     }
 
-    $config->extraSettings->buyResources['enabled'] = true;
-    $config->extraSettings->buyAnimal['enabled'] = true;
+    $config->extraSettings->buyResources['enabled'] = false;
+    $config->extraSettings->buyAnimal['enabled'] = false;
 }
 if ($config->game->speed <= 1000) {
     $config->extraSettings->buyResources['enabled'] = false;
