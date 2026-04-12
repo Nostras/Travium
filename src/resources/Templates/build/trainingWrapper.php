@@ -57,7 +57,7 @@
             <div class="status none"><?= $vars['none_status']; ?></div>
             <span class="value"><?= T("inGame", "Amount"); ?></span>
             <input type="text" class="text" name="t<?= $vars['index']; ?>" value="0"
-                   maxlength="<?= max(strlen($vars['max']), 4); ?>"/><span class="value"> / </span>
+                   maxlength="<?= max(strlen($vars['max']), 9); ?>"/><span class="value"> / </span>
             <a href="#"
                onclick="jQuery(this).closest('div.details').find('input').val(<?= $vars['max']; ?>); return false;"><?= number_format_x($vars['max']); ?></a>
         </div>
